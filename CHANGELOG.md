@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-08-10
+
 ### Added
 
+- Optional **`initialPopulation`** on `Unsga3Algorithm.Run` (grid-seed / warm-start for domain adapters; Torquon dogfood)
 - Multi-seed Wilcoxon / Mann–Whitney oracle harness (`tools/oracle/run_multiseed_wilcoxon.py`)
 - Community files: CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, ROADMAP, CITATION.cff, issue templates
 
