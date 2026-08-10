@@ -81,7 +81,24 @@ public sealed class Unsga3Algorithm
     public OptimizationResult Run(IProblem problem, int maxGenerations) =>
         Run(problem, TerminationCriterion.MaxGenerations(maxGenerations));
 
-    public OptimizationResult Run(IProblem problem, TerminationCriterion termination)
+    /// <param name="initialPopulation">
+    /// Optional seed individuals (decision variables only; re-evaluated). Used to inject a known
+    /// feasible set (e.g. Torquon grid oracle). When null or empty, a uniform random init is used.
+    /// Extra seeds beyond <see cref="_populationSize"/> are truncated; fewer are pad-filled randomly.
+    /// </param>
+    public OptimizationResult Run(
+        IProblem problem,
+        int maxGenerations,
+        IReadOnlyList<Individual>? initialPopulation) =>
+        Run(problem, TerminationCriterion.MaxGenerations(maxGenerations), initialPopulation);
+
+    public OptimizationResult Run(IProblem problem, TerminationCriterion termination) =>
+        Run(problem, termination, initialPopulation: null);
+
+    public OptimizationResult Run(
+        IProblem problem,
+        TerminationCriterion termination,
+        IReadOnlyList<Individual>? initialPopulation)
     {
         ArgumentNullException.ThrowIfNull(problem);
         ArgumentNullException.ThrowIfNull(termination);
@@ -101,7 +118,7 @@ public sealed class Unsga3Algorithm
         double mutProb = _mutationProbability ?? (1.0 / problem.NumberOfVariables);
 
         // --- initialize ---
-        var population = CreateInitialPopulation(problem, _populationSize, rng);
+        var population = CreateInitialPopulation(problem, _populationSize, rng, initialPopulation);
         int evaluations = EvaluateAll(problem, population);
 
         // Prepare ranks/niches for first selection.
@@ -204,13 +221,46 @@ public sealed class Unsga3Algorithm
         return sb.ToString();
     }
 
-    private static Population CreateInitialPopulation(IProblem problem, int size, RandomProvider rng)
+    private static Population CreateInitialPopulation(
+        IProblem problem,
+        int size,
+        RandomProvider rng,
+        IReadOnlyList<Individual>? seed = null)
     {
         var pop = new Population(size);
-        for (int i = 0; i < size; i++)
+        int nVar = problem.NumberOfVariables;
+        int nObj = problem.NumberOfObjectives;
+        int nCon = problem.NumberOfConstraints;
+
+        if (seed is { Count: > 0 })
         {
-            var ind = new Individual(problem.NumberOfVariables, problem.NumberOfObjectives, problem.NumberOfConstraints);
-            for (int j = 0; j < problem.NumberOfVariables; j++)
+            int nTake = Math.Min(size, seed.Count);
+            for (int i = 0; i < nTake; i++)
+            {
+                var src = seed[i];
+                if (src.Variables.Length != nVar)
+                    throw new ArgumentException(
+                        $"Seed individual {i} has {src.Variables.Length} variables; problem expects {nVar}.",
+                        nameof(seed));
+                var ind = new Individual(nVar, nObj, nCon);
+                Array.Copy(src.Variables, ind.Variables, nVar);
+                // Clamp into bounds (categorical genes already live in [0,1]).
+                for (int j = 0; j < nVar; j++)
+                {
+                    (double lo, double hi) = problem.Bounds[j];
+                    double v = ind.Variables[j];
+                    if (v < lo) v = lo;
+                    if (v > hi) v = hi;
+                    ind.Variables[j] = v;
+                }
+                pop.Add(ind);
+            }
+        }
+
+        while (pop.Count < size)
+        {
+            var ind = new Individual(nVar, nObj, nCon);
+            for (int j = 0; j < nVar; j++)
             {
                 (double lo, double hi) = problem.Bounds[j];
                 ind.Variables[j] = rng.NextDouble(lo, hi);
