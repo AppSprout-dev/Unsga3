@@ -1,7 +1,7 @@
 ---
 name: unsga3-oracle
 description: >
-  Run Unsga3 equivalence oracles vs pymoo (single-seed and multi-seed Mann–Whitney/Wilcoxon),
+  Run Unsga3 equivalence oracles vs pymoo (single-seed and multi-seed Mann-Whitney/Wilcoxon),
   diagnose IGD gaps, and update docs/ORACLE-RESULTS.md + docs/WILCOXON-RESULTS.md.
   Use when the user runs /unsga3-oracle, or asks to re-run the oracle, multi-seed Wilcoxon,
   pymoo parity, IGD comparison, DTLZ2/ZDT1 gap analysis, or equivalence harness.
