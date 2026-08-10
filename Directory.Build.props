@@ -5,13 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Authors>Jason Bennitt</Authors>
-    <Company>jkbennitt</Company>
-    <Copyright>Copyright (c) Jason Bennitt</Copyright>
+    <Company>AppSprout</Company>
+    <Copyright>Copyright (c) Jason Bennitt / AppSprout</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
-    <!-- Updated on first push; workflow also overrides RepositoryUrl at pack time -->
-    <PackageProjectUrl>https://github.com/jkbennitt/Unsga3</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/jkbennitt/Unsga3</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/AppSprout-dev/Unsga3</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AppSprout-dev/Unsga3</RepositoryUrl>
     <PackageTags>optimization;nsga;nsga3;unsga3;multi-objective;evolutionary;moea</PackageTags>
     <Version>0.1.0</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>

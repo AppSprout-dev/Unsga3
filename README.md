@@ -14,17 +14,18 @@
 dotnet add package Unsga3
 ```
 
-**GitHub Packages** (primary for early releases):
+**GitHub Packages** (primary for early releases) — org registry:
 
 ```bash
 # once per machine
-dotnet nuget add source https://nuget.pkg.github.com/jkbennitt/index.json \
-  --name github-jkbennitt --username YOUR_GH_USER --password YOUR_PAT --store-password-in-clear-text
+dotnet nuget add source https://nuget.pkg.github.com/AppSprout-dev/index.json \
+  --name github-appsprout --username YOUR_GH_USER --password YOUR_PAT --store-password-in-clear-text
 
 dotnet add package Unsga3
 ```
 
-PAT needs `read:packages`. Publish happens on `v*` tags via `.github/workflows/publish-github-packages.yml`.
+Repo: https://github.com/AppSprout-dev/Unsga3  
+PAT needs `read:packages`. Publish on `v*` tags via `.github/workflows/publish-github-packages.yml`.
 
 ## Quick start
 
