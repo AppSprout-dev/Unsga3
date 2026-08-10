@@ -1,0 +1,92 @@
+# Unsga3
+
+**U-NSGA-III** (Unified NSGA-III) for .NET — single-, multi-, and many-objective evolutionary optimization with Das–Dennis reference directions, SBX crossover, polynomial mutation, and **niching-based tournament selection** (Seada & Deb).
+
+> Status: **v0.1** — working U-NSGA-III, standard ZDT/DTLZ/SO suite, IGD/HV metrics (pymoo-aligned formulas).  
+> Research basis: [`docs/RESEARCH-STANDARDS.md`](docs/RESEARCH-STANDARDS.md).  
+> Full oracle equivalence vs pymoo: protocol in [`docs/EQUIVALENCE.md`](docs/EQUIVALENCE.md) (CSV harness; CI uses loose IGD smoke bars).
+
+## Install
+
+**nuget.org** (when published):
+
+```bash
+dotnet add package Unsga3
+```
+
+**GitHub Packages** (primary for early releases):
+
+```bash
+# once per machine
+dotnet nuget add source https://nuget.pkg.github.com/jkbennitt/index.json \
+  --name github-jkbennitt --username YOUR_GH_USER --password YOUR_PAT --store-password-in-clear-text
+
+dotnet add package Unsga3
+```
+
+PAT needs `read:packages`. Publish happens on `v*` tags via `.github/workflows/publish-github-packages.yml`.
+
+## Quick start
+
+```csharp
+using Unsga3.Algorithm;
+using Unsga3.Problems;
+using Unsga3.Utilities;
+
+var problem = new Zdt1Problem();
+var dirs = ReferenceDirections.DasDennis(numberOfObjectives: 2, partitions: 12);
+var algo = new Unsga3Algorithm(dirs, populationSize: 40, seed: 42);
+var result = algo.Run(problem, maxGenerations: 100);
+
+foreach (var ind in result.NonDominatedSolutions)
+    Console.WriteLine($"{ind.Objectives[0]:F4}  {ind.Objectives[1]:F4}");
+```
+
+Or:
+
+```csharp
+var algo = Unsga3Algorithm.WithDasDennis(numberOfObjectives: 3, partitions: 12, seed: 1);
+```
+
+## Public surface
+
+| Type | Role |
+|------|------|
+| `IProblem` / `ProblemBase` | Problem definition (minimize objectives; g≤0 constraints) |
+| `Unsga3Algorithm` | Main entry — `Run(problem, gens)` |
+| `Individual` | Variables / Objectives / Constraints |
+| `OptimizationResult` | Final population + non-dominated set |
+| `ReferenceDirections.DasDennis` | Structured reference points |
+| `SimulatedBinaryCrossover` / `PolynomialMutation` | Variation operators |
+
+## Build & test
+
+```bash
+dotnet build Unsga3.slnx
+dotnet test Unsga3.slnx
+dotnet run --project samples/BasicUsage
+```
+
+Requires **.NET 10** SDK (targets `net10.0`; retarget to `net8.0` in the csproj if you need broader NuGet reach).
+
+## Layout
+
+```
+Unsga3/
+├── src/Unsga3/           # Library
+├── tests/Unsga3.Tests/   # Unit / Benchmarks / Equivalence
+├── samples/BasicUsage/
+├── docs/
+├── .github/workflows/
+└── Unsga3.slnx
+```
+
+## References
+
+- Seada, H. & Deb, K. (2016). *A Unified Evolutionary Optimization Procedure for Single, Multiple, and Many Objectives.* IEEE Trans. Evol. Comput.
+- Deb, K. & Jain, H. (2014). *An Evolutionary Many-Objective Optimization Algorithm Using Reference-Point-Based Nondominated Sorting Approach (NSGA-III).*
+- Das, I. & Dennis, J. E. (1998). *Normal-Boundary Intersection.*
+
+## License
+
+MIT — see [LICENSE](LICENSE).

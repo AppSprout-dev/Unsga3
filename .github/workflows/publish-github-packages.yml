@@ -1,0 +1,43 @@
+name: publish-github-packages
+
+# Publishes Unsga3 nupkg to GitHub Packages (NuGet registry) on version tags or manual dispatch.
+# Consume: https://nuget.pkg.github.com/<owner>/index.json  (auth: PAT with read:packages)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test
+        run: dotnet test Unsga3.slnx -c Release --verbosity minimal
+
+      - name: Pack
+        run: |
+          dotnet pack src/Unsga3/Unsga3.csproj -c Release -o artifacts \
+            -p:RepositoryUrl=https://github.com/${{ github.repository }} \
+            -p:PackageProjectUrl=https://github.com/${{ github.repository }}
+
+      - name: Push to GitHub Packages
+        run: |
+          dotnet nuget push artifacts/*.nupkg \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json \
+            --skip-duplicate

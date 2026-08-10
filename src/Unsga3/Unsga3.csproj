@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Unsga3</RootNamespace>
+    <AssemblyName>Unsga3</AssemblyName>
+    <PackageId>Unsga3</PackageId>
+    <Description>
+      U-NSGA-III (Unified NSGA-III) multi-objective evolutionary optimization for .NET.
+      Single-, multi-, and many-objective problems with Das–Dennis reference directions,
+      SBX crossover, polynomial mutation, and niching-based tournament selection (Seada &amp; Deb).
+    </Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Unsga3.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
