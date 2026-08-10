@@ -2,7 +2,9 @@
 
 Goal: prove this port is a faithful U-NSGA-III (Seada & Deb 2016), not a look-alike.
 
-See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature + pymoo protocol this suite follows, and **[ORACLE-RESULTS.md](ORACLE-RESULTS.md)** for latest numbers.
+See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature + pymoo protocol,
+**[ORACLE-RESULTS.md](ORACLE-RESULTS.md)** for single-seed numbers, and
+**[WILCOXON-RESULTS.md](WILCOXON-RESULTS.md)** for 15-seed Mann–Whitney / Wilcoxon vs pymoo.
 
 ## Primary sources
 
@@ -17,7 +19,8 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
 2. **Same reference set:** Das–Dennis partitions identical to the oracle  
 3. **Same pop size / generations / seed** (or 15–31 seeds for statistics)  
 4. **Metrics:** IGD (primary), IGD+, HV (M=2, document ref point), front plots for M≤3  
-5. **Tolerance:** median IGD within ~1–2× of pymoo on ZDT/DTLZ is the practical bar; seed-1 DTLZ2 is ~1.15× after the normalization fix  
+5. **Tolerance:** median IGD within ~1–2× of pymoo on ZDT/DTLZ is the practical bar.
+   15-seed: ZDT1 median **better** than pymoo (ratio 0.76, MWU n.s.); DTLZ2 median ~**1.6×** (pymoo still ahead).
 
 ## Problems (must-pass)
 
