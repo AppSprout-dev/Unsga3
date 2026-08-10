@@ -6,19 +6,35 @@ on:
   pull_request:
     branches: [main, master]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+
       - name: Restore
         run: dotnet restore Unsga3.slnx
+
       - name: Build
         run: dotnet build Unsga3.slnx -c Release --no-restore
+
       - name: Test
-        run: dotnet test Unsga3.slnx -c Release --no-build --verbosity normal
+        run: dotnet test Unsga3.slnx -c Release --no-build --verbosity normal --logger "console;verbosity=detailed"
+
       - name: Pack
         run: dotnet pack src/Unsga3/Unsga3.csproj -c Release --no-build -o artifacts
+
+      - name: Upload nupkg
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg
+          if-no-files-found: error

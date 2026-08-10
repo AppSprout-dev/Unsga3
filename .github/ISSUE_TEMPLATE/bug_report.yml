@@ -1,0 +1,37 @@
+name: Bug report
+description: Something incorrect or unexpected in Unsga3
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. For security issues, use [SECURITY.md](https://github.com/AppSprout-dev/Unsga3/blob/main/SECURITY.md) instead.
+  - type: input
+    id: version
+    attributes:
+      label: Unsga3 version / commit
+      placeholder: "0.1.2 or git SHA"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Problem, seed, pop, gens, tournament mode, short code snippet
+      placeholder: |
+        var algo = Unsga3Algorithm.WithDasDennis(3, 12, seed: 1);
+        ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "OS, .NET SDK version"

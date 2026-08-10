@@ -1,13 +1,40 @@
+# Build
 bin/
 obj/
 artifacts/
+TestResults/
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
 .vs/
 .idea/
 *.nupkg
-TestResults/
+*.snupkg
+project.lock.json
+
+# Oracle run outputs (regenerable; large fronts)
 tools/oracle/out/
 *.csv
+
+# Keep docs
 !docs/**
 
+# OS / editor
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local secrets
+*.pfx
+appsettings.*.local.json
+.env
+.env.*

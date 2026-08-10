@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+title: Unsga3
+message: If you use this software, please cite it using these metadata.
+type: software
+authors:
+  - family-names: Bennitt
+    given-names: Jason
+    affiliation: AppSprout
+repository-code: "https://github.com/AppSprout-dev/Unsga3"
+url: "https://github.com/AppSprout-dev/Unsga3"
+abstract: >-
+  U-NSGA-III (Unified NSGA-III) multi-objective evolutionary optimization
+  for .NET — single-, multi-, and many-objective problems with Das–Dennis
+  reference directions, SBX, polynomial mutation, and niching tournament
+  selection (Seada & Deb).
+keywords:
+  - multi-objective optimization
+  - NSGA-III
+  - U-NSGA-III
+  - evolutionary algorithms
+  - C#
+  - .NET
+license: MIT
+version: 0.1.2
+date-released: "2026-08-10"
+references:
+  - type: article
+    authors:
+      - family-names: Seada
+        given-names: Haitham
+      - family-names: Deb
+        given-names: Kalyanmoy
+    title: >-
+      A Unified Evolutionary Optimization Procedure for Single, Multiple,
+      and Many Objectives
+    journal: IEEE Transactions on Evolutionary Computation
+    year: 2016
+  - type: article
+    authors:
+      - family-names: Deb
+        given-names: Kalyanmoy
+      - family-names: Jain
+        given-names: Himanshu
+    title: >-
+      An Evolutionary Many-Objective Optimization Algorithm Using
+      Reference-Point-Based Nondominated Sorting Approach, Part I
+    journal: IEEE Transactions on Evolutionary Computation
+    year: 2014

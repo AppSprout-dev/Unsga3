@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Equivalence / oracle discussion
+    url: https://github.com/AppSprout-dev/Unsga3/blob/main/docs/EQUIVALENCE.md
+    about: How we compare to pymoo and what “parity” means
+  - name: Contributing guide
+    url: https://github.com/AppSprout-dev/Unsga3/blob/main/CONTRIBUTING.md
+    about: Setup, PR expectations, style

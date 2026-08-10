@@ -82,5 +82,5 @@ Deep-dive vs pymoo `HyperplaneNormalization` / `ReferenceDirectionSurvival` (pym
 | `TournamentMode.PymooCompatible` | **implemented** |
 | Duplicate elimination | **implemented** (default on) |
 | RNG path / batch niche pick order | residual ~10–50% IGD noise (expected) |
-| Multi-seed Wilcoxon vs pymoo | open |
+| Multi-seed Mann–Whitney / Wilcoxon (n=15) | **done** — [WILCOXON-RESULTS.md](WILCOXON-RESULTS.md) |
 | Exact bit-identical fronts | not a goal (different RNG streams) |
