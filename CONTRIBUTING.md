@@ -34,6 +34,8 @@ python tools/oracle/run_multiseed_wilcoxon.py --problems zdt1 dtlz2 --seeds 15
 
 See [`docs/EQUIVALENCE.md`](docs/EQUIVALENCE.md) and [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md).
 
+Grok Build skills (maintainers): `/unsga3-oracle` · `/unsga3-release` under [`.grok/skills/`](.grok/skills/).
+
 ## What we welcome
 
 | Area | Notes |
