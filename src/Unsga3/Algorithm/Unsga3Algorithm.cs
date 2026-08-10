@@ -20,6 +20,7 @@ public sealed class Unsga3Algorithm
     private readonly double _crossoverProbability;
     private readonly double? _mutationProbability;
     private readonly int? _seed;
+    private readonly TournamentMode _tournamentMode;
 
     /// <param name="referenceDirections">Das–Dennis (or custom) directions; one weight vector per niche.</param>
     /// <param name="populationSize">Defaults to the number of reference directions.</param>
@@ -28,6 +29,7 @@ public sealed class Unsga3Algorithm
     /// <param name="crossoverProbability">Probability of applying SBX to a parent pair.</param>
     /// <param name="mutationProbability">Per-variable mutation probability; default 1/nVars at run time.</param>
     /// <param name="seed">Optional RNG seed for reproducibility.</param>
+    /// <param name="tournamentMode">Mating tournament policy; use <see cref="TournamentMode.PymooCompatible"/> for oracle runs.</param>
     public Unsga3Algorithm(
         double[][] referenceDirections,
         int? populationSize = null,
@@ -35,7 +37,8 @@ public sealed class Unsga3Algorithm
         IMutation? mutation = null,
         double crossoverProbability = 1.0,
         double? mutationProbability = null,
-        int? seed = null)
+        int? seed = null,
+        TournamentMode tournamentMode = TournamentMode.RankNicheDistance)
     {
         ArgumentNullException.ThrowIfNull(referenceDirections);
         if (referenceDirections.Length < 1)
@@ -53,6 +56,7 @@ public sealed class Unsga3Algorithm
         _crossoverProbability = crossoverProbability;
         _mutationProbability = mutationProbability;
         _seed = seed;
+        _tournamentMode = tournamentMode;
     }
 
     /// <summary>Convenience: build Das–Dennis directions then construct the algorithm.</summary>
@@ -60,10 +64,11 @@ public sealed class Unsga3Algorithm
         int numberOfObjectives,
         int partitions,
         int? populationSize = null,
-        int? seed = null)
+        int? seed = null,
+        TournamentMode tournamentMode = TournamentMode.RankNicheDistance)
     {
         var dirs = ReferenceDirections.DasDennis(numberOfObjectives, partitions);
-        return new Unsga3Algorithm(dirs, populationSize, seed: seed);
+        return new Unsga3Algorithm(dirs, populationSize, seed: seed, tournamentMode: tournamentMode);
     }
 
     public OptimizationResult Run(IProblem problem, int maxGenerations) =>
@@ -81,7 +86,7 @@ public sealed class Unsga3Algorithm
         var rng = new RandomProvider(_seed);
         var refs = new ReferencePointManager(_referenceDirections);
         var normalization = new Normalization(problem.NumberOfObjectives);
-        var tournament = new TournamentSelection();
+        var tournament = new TournamentSelection(_tournamentMode);
         var survival = new NondominatedSortingSurvival(refs);
         double mutProb = _mutationProbability ?? (1.0 / problem.NumberOfVariables);
 
@@ -123,7 +128,7 @@ public sealed class Unsga3Algorithm
             var combined = new List<Individual>(population.Count + offspring.Count);
             combined.AddRange(population.Members);
             combined.AddRange(offspring);
-            var next = survival.Select(combined, _populationSize);
+            var next = survival.Select(combined, _populationSize, rng);
 
             population = new Population(next);
             TournamentSelection.PrepareForSelection(population.Members, refs, normalization);

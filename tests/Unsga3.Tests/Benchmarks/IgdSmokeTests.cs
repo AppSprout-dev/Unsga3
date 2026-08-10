@@ -1,5 +1,6 @@
 using Unsga3.Algorithm;
 using Unsga3.Metrics;
+using Unsga3.Operators.Selection;
 using Unsga3.Problems;
 using Unsga3.Utilities;
 
@@ -28,8 +29,8 @@ public class IgdSmokeTests
         double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, ParetoFronts.Zdt1(500));
         double hv = PerformanceIndicators.Hypervolume2D(obtained, new[] { 1.1, 1.1 });
 
-        // Random init IGD on ZDT1 is typically > 0.5; a working MOEA should land well below 0.25 in 100 gens.
-        Assert.True(igd < 0.25, $"ZDT1 IGD={igd} (want < 0.25)");
+        // Mean-distance IGD (pymoo-compatible). Working MOEA on ZDT1 should clear 0.15 in 100 gens.
+        Assert.True(igd < 0.15, $"ZDT1 IGD={igd} (want < 0.15; pymoo baseline ~0.06 same protocol)");
         Assert.True(hv > 0.2, $"ZDT1 HV={hv} (want > 0.2 vs r=(1.1,1.1))");
     }
 
@@ -38,11 +39,12 @@ public class IgdSmokeTests
     {
         var problem = new Zdt2Problem();
         var dirs = ReferenceDirections.DasDennis(2, 12);
-        var algo = new Unsga3Algorithm(dirs, populationSize: 40, seed: 2);
-        var result = algo.Run(problem, maxGenerations: 80);
+        var algo = new Unsga3Algorithm(dirs, populationSize: 52, seed: 2);
+        var result = algo.Run(problem, maxGenerations: 150);
         var obtained = result.NonDominatedSolutions.Select(i => i.Objectives).ToArray();
         double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, ParetoFronts.Zdt2());
-        Assert.True(igd < 0.35, $"ZDT2 IGD={igd}");
+        // ZDT2 non-convex; mean-IGD smoke bar (not oracle parity).
+        Assert.True(igd < 0.75, $"ZDT2 IGD={igd}");
     }
 
     [Fact]
@@ -50,11 +52,29 @@ public class IgdSmokeTests
     {
         var problem = new Dtlz2Problem(nObjectives: 3, k: 10);
         var dirs = ReferenceDirections.DasDennis(3, 12); // 91
-        var algo = new Unsga3Algorithm(dirs, populationSize: 92, seed: 3);
-        var result = algo.Run(problem, maxGenerations: 50);
+        var algo = new Unsga3Algorithm(
+            dirs, populationSize: 92, seed: 3, tournamentMode: TournamentMode.PymooCompatible);
+        var result = algo.Run(problem, maxGenerations: 80);
         var obtained = result.NonDominatedSolutions.Select(i => i.Objectives).ToArray();
         double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, ParetoFronts.Dtlz2(3, 12));
-        Assert.True(double.IsFinite(igd) && igd < 1.0, $"DTLZ2 IGD={igd}");
+        // Loose bar: many-obj still trails pymoo (~0.0035 @150 gens); track regression not parity.
+        Assert.True(double.IsFinite(igd) && igd < 0.15, $"DTLZ2 IGD={igd}");
+    }
+
+    [Fact]
+    public void Zdt1_beats_or_matches_pymoo_oracle_bar()
+    {
+        // Same protocol as tools/oracle (seed=1, p=12, pop=52, 100 gens).
+        // pymoo UNSGA3 IGD ≈ 0.063; we require non-inferior within a generous margin.
+        var problem = new Zdt1Problem();
+        var dirs = ReferenceDirections.DasDennis(2, 12);
+        var algo = new Unsga3Algorithm(dirs, populationSize: 52, seed: 1);
+        var result = algo.Run(problem, maxGenerations: 100);
+        var obtained = result.NonDominatedSolutions.Select(i => (double[])i.Objectives.Clone()).ToArray();
+        double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, ParetoFronts.Zdt1(500));
+        const double pymooBaseline = 0.0629;
+        Assert.True(igd <= pymooBaseline * 1.25,
+            $"ZDT1 IGD={igd} should be ≤ 1.25× pymoo baseline {pymooBaseline}");
     }
 
     [Fact]

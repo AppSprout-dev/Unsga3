@@ -12,7 +12,7 @@
     <PackageProjectUrl>https://github.com/AppSprout-dev/Unsga3</PackageProjectUrl>
     <RepositoryUrl>https://github.com/AppSprout-dev/Unsga3</RepositoryUrl>
     <PackageTags>optimization;nsga;nsga3;unsga3;multi-objective;evolutionary;moea</PackageTags>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
   </PropertyGroup>

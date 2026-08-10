@@ -5,15 +5,20 @@ using Unsga3.Utilities;
 namespace Unsga3.Operators.Selection;
 
 /// <summary>
-/// U-NSGA-III niching-based binary tournament (Seada &amp; Deb):
-/// prefer better non-domination rank, then lower niche count (associated reference).
-/// Feasible solutions beat infeasible; among infeasible, lower CV wins.
+/// U-NSGA-III niching-based binary tournament (Seada &amp; Deb / pymoo variants).
 /// </summary>
 public sealed class TournamentSelection
 {
+    public TournamentSelection(TournamentMode mode = TournamentMode.RankNicheDistance)
+    {
+        Mode = mode;
+    }
+
+    public TournamentMode Mode { get; }
+
     /// <summary>
     /// Select <paramref name="count"/> parents (with replacement tournaments) from the population.
-    /// Population must already have Rank and NicheCount set.
+    /// Population must already have Rank / niche association set via <see cref="PrepareForSelection"/>.
     /// </summary>
     public List<Individual> SelectParents(
         IReadOnlyList<Individual> population,
@@ -37,10 +42,24 @@ public sealed class TournamentSelection
         int n = population.Count;
         int a = rng.Next(n);
         int b = rng.NextExcept(n, a);
-        return Winner(population[a], population[b], rng);
+        return Winner(population[a], population[b], rng, Mode);
     }
 
-    internal static Individual Winner(Individual a, Individual b, RandomProvider rng)
+    internal static Individual Winner(
+        Individual a,
+        Individual b,
+        RandomProvider rng,
+        TournamentMode mode = TournamentMode.RankNicheDistance)
+    {
+        return mode switch
+        {
+            TournamentMode.PymooCompatible => WinnerPymoo(a, b, rng),
+            _ => WinnerRankNicheDistance(a, b, rng),
+        };
+    }
+
+    /// <summary>Default: rank → niche count → perpendicular distance.</summary>
+    internal static Individual WinnerRankNicheDistance(Individual a, Individual b, RandomProvider rng)
     {
         // Constraint first.
         bool aFeas = a.IsFeasible;
@@ -53,18 +72,43 @@ public sealed class TournamentSelection
             if (b.ConstraintViolation < a.ConstraintViolation) return b;
         }
 
-        // Rank (lower better).
         if (a.Rank < b.Rank) return a;
         if (b.Rank < a.Rank) return b;
 
-        // Niche count (lower better — less crowded reference direction).
         if (a.NicheCount < b.NicheCount) return a;
         if (b.NicheCount < a.NicheCount) return b;
 
-        // Perpendicular distance to reference as tie-break (closer better).
         if (a.PerpendicularDistance < b.PerpendicularDistance) return a;
         if (b.PerpendicularDistance < a.PerpendicularDistance) return b;
 
+        return rng.NextDouble() < 0.5 ? a : b;
+    }
+
+    /// <summary>
+    /// pymoo <c>comp_by_rank_and_ref_line_dist</c>:
+    /// CV → if same associated reference (niche) then rank → dist-to-niche; else random.
+    /// </summary>
+    internal static Individual WinnerPymoo(Individual a, Individual b, RandomProvider rng)
+    {
+        bool aInfeas = !a.IsFeasible;
+        bool bInfeas = !b.IsFeasible;
+        if (aInfeas || bInfeas)
+        {
+            if (a.ConstraintViolation < b.ConstraintViolation) return a;
+            if (b.ConstraintViolation < a.ConstraintViolation) return b;
+            return rng.NextDouble() < 0.5 ? a : b;
+        }
+
+        // Same niche (associated reference index) → rank, else dist_to_niche.
+        if (a.AssociatedReference == b.AssociatedReference && a.AssociatedReference >= 0)
+        {
+            if (a.Rank != b.Rank)
+                return a.Rank < b.Rank ? a : b;
+            if (a.PerpendicularDistance < b.PerpendicularDistance) return a;
+            if (b.PerpendicularDistance < a.PerpendicularDistance) return b;
+        }
+
+        // Different niches (or no association) → random (pymoo).
         return rng.NextDouble() < 0.5 ? a : b;
     }
 

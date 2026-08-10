@@ -52,7 +52,7 @@ Default dimensions (Deb / pymoo convention):
 
 | Metric | Direction | Needs true PF? | Notes |
 |--------|-----------|----------------|-------|
-| **IGD** | ↓ | Yes | **Primary** for many-obj papers |
+| **IGD** | ↓ | Yes | **Primary** — pymoo = **mean** nearest Euclidean distance (not √Σd²/n) |
 | **IGD+** | ↓ | Yes | Weakly Pareto compliant (Ishibuchi) |
 | **GD** | ↓ | Yes | Convergence only (can miss spread) |
 | **HV** | ↑ | No (needs ref point) | Prefer when PF unknown; 2-D closed form here |

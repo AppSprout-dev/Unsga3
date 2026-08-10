@@ -8,27 +8,24 @@ namespace Unsga3.Metrics;
 public static class PerformanceIndicators
 {
     /// <summary>
-    /// Generational Distance: average distance from each point in A to nearest PF reference in Z.
-    /// GD(A) = (1/|A|) * (Σ d_i^p)^{1/p}, p=2.
+    /// Generational Distance (pymoo / Coello-compatible default): mean Euclidean distance
+    /// from each obtained point to the nearest reference PF point.
     /// </summary>
     public static double GenerationalDistance(IReadOnlyList<double[]> obtained, IReadOnlyList<double[]> referenceFront)
     {
         ValidateFronts(obtained, referenceFront);
         if (obtained.Count == 0) return double.PositiveInfinity;
 
-        double sumSq = 0;
+        double sum = 0;
         for (int i = 0; i < obtained.Count; i++)
-        {
-            double d = NearestDistance(obtained[i], referenceFront);
-            sumSq += d * d;
-        }
-        return Math.Sqrt(sumSq) / obtained.Count;
+            sum += NearestDistance(obtained[i], referenceFront);
+        return sum / obtained.Count;
     }
 
     /// <summary>
-    /// Inverted Generational Distance: average distance from each PF point in Z to nearest in A.
-    /// Primary metric for many-objective papers (lower is better).
-    /// IGD(A) = (1/|Z|) * (Σ d̂_i^p)^{1/p}, p=2.
+    /// Inverted Generational Distance as used by <b>pymoo</b>: mean Euclidean distance
+    /// from each true PF point Z to the nearest obtained point A (lower is better).
+    /// Verified against pymoo 0.6.2 <c>IGD</c> (average of nearest-neighbor distances).
     /// </summary>
     public static double InvertedGenerationalDistance(
         IReadOnlyList<double[]> obtained,
@@ -38,17 +35,14 @@ public static class PerformanceIndicators
         if (referenceFront.Count == 0) return double.PositiveInfinity;
         if (obtained.Count == 0) return double.PositiveInfinity;
 
-        double sumSq = 0;
+        double sum = 0;
         for (int i = 0; i < referenceFront.Count; i++)
-        {
-            double d = NearestDistance(referenceFront[i], obtained);
-            sumSq += d * d;
-        }
-        return Math.Sqrt(sumSq) / referenceFront.Count;
+            sum += NearestDistance(referenceFront[i], obtained);
+        return sum / referenceFront.Count;
     }
 
     /// <summary>
-    /// IGD+ (Ishibuchi et al.): weakly Pareto-compliant; uses max(a_j - z_j, 0) style distance
+    /// IGD+ (Ishibuchi et al.): weakly Pareto-compliant mean modified distance
     /// from each reference z to nearest obtained a (minimization).
     /// </summary>
     public static double InvertedGenerationalDistancePlus(
@@ -59,7 +53,7 @@ public static class PerformanceIndicators
         if (referenceFront.Count == 0 || obtained.Count == 0)
             return double.PositiveInfinity;
 
-        double sumSq = 0;
+        double sum = 0;
         for (int i = 0; i < referenceFront.Count; i++)
         {
             double best = double.PositiveInfinity;
@@ -69,9 +63,9 @@ public static class PerformanceIndicators
                 double d = ModifiedDistance(obtained[j], z);
                 if (d < best) best = d;
             }
-            sumSq += best * best;
+            sum += best;
         }
-        return Math.Sqrt(sumSq) / referenceFront.Count;
+        return sum / referenceFront.Count;
     }
 
     /// <summary>

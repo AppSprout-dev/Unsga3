@@ -7,3 +7,7 @@ artifacts/
 .idea/
 *.nupkg
 TestResults/
+tools/oracle/out/
+*.csv
+!docs/**
+

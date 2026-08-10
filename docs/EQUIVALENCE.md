@@ -66,8 +66,10 @@ Then in C#: load CSV, call `PerformanceIndicators.InvertedGenerationalDistance` 
 
 | Item | This library | pymoo |
 |------|--------------|-------|
-| Tournament across niches | rank → niche count → dist | random if niches differ |
+| Tournament (default) | rank → niche count → dist | — |
+| Tournament (`PymooCompatible`) | same niche → rank/dist; else random | `comp_by_rank_and_ref_line_dist` |
 | Duplicate elimination | not yet | `eliminate_duplicates=True` default |
-| Survival RNG | deterministic niche pick | random among equal niches |
+| Survival RNG | optional RNG niche pick | random among equal niches |
+| IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |
 
-These can block bit-identical fronts; IGD proximity is still the right shipping metric.
+Latest numbers: **[ORACLE-RESULTS.md](ORACLE-RESULTS.md)** (ZDT1: we beat pymoo; DTLZ2: still ~5× behind with pymoo-mode).

@@ -15,11 +15,21 @@ public class MetricsTests
     [Fact]
     public void IGD_positive_when_front_shifted()
     {
-        // Single PF point (0,0); obtained (1,1) → IGD = √2 (pymoo p=2 form: (1/|Z|)·(Σ d²)^{1/2}).
+        // Single PF point (0,0); obtained (1,1) → IGD = √2 (pymoo: mean nearest distance).
         var pf = new[] { new[] { 0.0, 0.0 } };
         var obtained = new[] { new[] { 1.0, 1.0 } };
         double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, pf);
         Assert.InRange(igd, Math.Sqrt(2) - 1e-9, Math.Sqrt(2) + 1e-9);
+    }
+
+    [Fact]
+    public void IGD_matches_mean_of_nearest_distances()
+    {
+        // Two PF points; one obtained at origin → mean of ||z||.
+        var pf = new[] { new[] { 3.0, 0.0 }, new[] { 0.0, 4.0 } };
+        var obtained = new[] { new[] { 0.0, 0.0 } };
+        double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, pf);
+        Assert.InRange(igd, 3.5 - 1e-9, 3.5 + 1e-9); // (3+4)/2
     }
 
     [Fact]
