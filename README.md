@@ -2,9 +2,9 @@
 
 **U-NSGA-III** (Unified NSGA-III) for .NET — single-, multi-, and many-objective evolutionary optimization with Das–Dennis reference directions, SBX crossover, polynomial mutation, and **niching-based tournament selection** (Seada & Deb).
 
-> Status: **v0.1.1-dev** — U-NSGA-III + `TournamentMode.PymooCompatible` + pymoo-matched **mean** IGD.  
-> Oracle (seed=1): **ZDT1 beats pymoo**; **DTLZ2 still ~5× behind** — see [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md).  
-> Research / protocol: [`docs/RESEARCH-STANDARDS.md`](docs/RESEARCH-STANDARDS.md), [`docs/EQUIVALENCE.md`](docs/EQUIVALENCE.md).
+> Status: **v0.1.2** — U-NSGA-III with pymoo-aligned hyperplane normalization + duplicate elimination.  
+> Oracle (seed=1): **ZDT1 beats pymoo** (0.051 vs 0.063); **DTLZ2 ~1.15× pymoo** (0.0040 vs 0.0035, was ~5×).  
+> See [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md) · [`docs/EQUIVALENCE.md`](docs/EQUIVALENCE.md) · [`docs/RESEARCH-STANDARDS.md`](docs/RESEARCH-STANDARDS.md).
 
 ## Install
 

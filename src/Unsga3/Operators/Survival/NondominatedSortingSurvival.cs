@@ -12,16 +12,22 @@ public sealed class NondominatedSortingSurvival
     private readonly ReferencePointManager _references;
     private readonly Normalization _normalization;
 
-    public NondominatedSortingSurvival(ReferencePointManager references)
+    /// <param name="references">Reference-direction / niche manager.</param>
+    /// <param name="normalization">
+    /// Optional shared normalizer. Pass the algorithm-owned instance so ideal / extreme
+    /// points persist across generations (pymoo). When null, a fresh normalizer is created.
+    /// </param>
+    public NondominatedSortingSurvival(ReferencePointManager references, Normalization? normalization = null)
     {
         _references = references ?? throw new ArgumentNullException(nameof(references));
-        _normalization = new Normalization(references.NumberOfObjectives);
+        _normalization = normalization ?? new Normalization(references.NumberOfObjectives);
     }
 
     /// <summary>
     /// Select <paramref name="targetSize"/> individuals from the combined parent+offspring pool.
     /// When a niche already has members, a random candidate in that niche is chosen (pymoo-style)
     /// if <paramref name="rng"/> is provided; otherwise lowest index (deterministic).
+    /// Normalization uses the first front only for extreme points (pymoo HyperplaneNormalization).
     /// </summary>
     public List<Individual> Select(
         IReadOnlyList<Individual> combined,
@@ -34,7 +40,9 @@ public sealed class NondominatedSortingSurvival
             return combined.Select(i => i.Clone()).ToList();
 
         var fronts = NonDominatedSort.Sort(combined);
-        var normalized = _normalization.Normalize(combined);
+        // Extreme points from the ND front only — matches pymoo ReferenceDirectionSurvival.
+        IReadOnlyList<int>? nd = fronts.Count > 0 ? fronts[0] : null;
+        var normalized = _normalization.Normalize(combined, nd);
         return SelectWithIndices(combined, fronts, targetSize, normalized, rng);
     }
 

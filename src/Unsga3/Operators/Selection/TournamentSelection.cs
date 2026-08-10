@@ -122,8 +122,9 @@ public sealed class TournamentSelection
         ArgumentNullException.ThrowIfNull(references);
         ArgumentNullException.ThrowIfNull(normalization);
 
-        NonDominatedSort.Sort(population);
-        var normalized = normalization.Normalize(population);
+        var fronts = NonDominatedSort.Sort(population);
+        IReadOnlyList<int>? nd = fronts.Count > 0 ? fronts[0] : null;
+        var normalized = normalization.Normalize(population, nd);
         references.ResetNicheCounts();
         references.Associate(population, normalized);
     }

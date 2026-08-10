@@ -3,135 +3,243 @@ using Unsga3.Algorithm;
 namespace Unsga3.Core;
 
 /// <summary>
-/// NSGA-III style adaptive normalization: ideal point + intercept-based hyperplane scaling.
+/// NSGA-III adaptive hyperplane normalization (Deb &amp; Jain), aligned with pymoo
+/// <c>HyperplaneNormalization</c>:
+/// persistent ideal / worst points, ASF extreme points (optionally from the ND front),
+/// intercept-based nadir with front/population fallbacks.
 /// </summary>
 public sealed class Normalization
 {
     private readonly int _m;
     private readonly double[] _ideal;
-    private readonly double[] _intercepts;
+    private readonly double[] _worst;
     private readonly double[] _nadir;
+    private readonly double[] _intercepts;
+    private double[][]? _extremePoints;
+
+    /// <summary>
+    /// Values below this (after ideal translation) are treated as 0 when scoring ASF,
+    /// matching pymoo's <c>__F[__F &lt; 1e-3] = 0</c> numerical guard.
+    /// </summary>
+    private const double AsfFloor = 1e-3;
 
     public Normalization(int nObjectives)
     {
         if (nObjectives < 1) throw new ArgumentOutOfRangeException(nameof(nObjectives));
         _m = nObjectives;
         _ideal = new double[_m];
-        _intercepts = new double[_m];
+        _worst = new double[_m];
         _nadir = new double[_m];
+        _intercepts = new double[_m];
         for (int i = 0; i < _m; i++)
         {
             _ideal[i] = double.PositiveInfinity;
-            _intercepts[i] = 1.0;
+            _worst[i] = double.NegativeInfinity;
             _nadir[i] = 1.0;
+            _intercepts[i] = 1.0;
         }
     }
 
     public IReadOnlyList<double> IdealPoint => _ideal;
+    public IReadOnlyList<double> NadirPoint => _nadir;
     public IReadOnlyList<double> Intercepts => _intercepts;
 
     /// <summary>
-    /// Update ideal/nadir/intercepts from the current population and return
-    /// normalized objective vectors (one per individual, same order).
+    /// Update ideal / nadir from <paramref name="population"/> and return normalized
+    /// objective vectors (same order). When <paramref name="nonDominatedIndices"/> is
+    /// provided, extreme points are sought only among that subset (pymoo / NSGA-III);
+    /// otherwise the whole population is used.
     /// </summary>
-    public double[][] Normalize(IReadOnlyList<Individual> population)
+    public double[][] Normalize(
+        IReadOnlyList<Individual> population,
+        IReadOnlyList<int>? nonDominatedIndices = null)
     {
         ArgumentNullException.ThrowIfNull(population);
         int n = population.Count;
         if (n == 0) return Array.Empty<double[]>();
 
-        for (int j = 0; j < _m; j++)
-        {
-            _ideal[j] = double.PositiveInfinity;
-            _nadir[j] = double.NegativeInfinity;
-        }
-
+        // Persistent ideal / worst over the run (pymoo: never loses the best ideal).
         for (int i = 0; i < n; i++)
         {
             var f = population[i].Objectives;
             for (int j = 0; j < _m; j++)
             {
                 if (f[j] < _ideal[j]) _ideal[j] = f[j];
-                if (f[j] > _nadir[j]) _nadir[j] = f[j];
+                if (f[j] > _worst[j]) _worst[j] = f[j];
             }
         }
 
-        // Translate.
-        var translated = new double[n][];
-        for (int i = 0; i < n; i++)
+        // Extreme-point search set: ND front when supplied, else all.
+        int[] ndIdx;
+        if (nonDominatedIndices is { Count: > 0 })
         {
-            translated[i] = new double[_m];
-            for (int j = 0; j < _m; j++)
-                translated[i][j] = population[i].Objectives[j] - _ideal[j];
+            ndIdx = new int[nonDominatedIndices.Count];
+            for (int i = 0; i < nonDominatedIndices.Count; i++)
+                ndIdx[i] = nonDominatedIndices[i];
+        }
+        else
+        {
+            ndIdx = new int[n];
+            for (int i = 0; i < n; i++) ndIdx[i] = i;
         }
 
-        // Extreme points via ASF (Deb & Jain NSGA-III).
-        var extreme = new double[_m][];
-        for (int j = 0; j < _m; j++)
-        {
-            extreme[j] = (double[])translated[0].Clone();
-            double bestAsf = Asf(translated[0], j);
-            for (int i = 1; i < n; i++)
-            {
-                double asf = Asf(translated[i], j);
-                if (asf < bestAsf)
-                {
-                    bestAsf = asf;
-                    extreme[j] = (double[])translated[i].Clone();
-                }
-            }
-        }
-
-        // Intercepts from hyperplane through extreme points; fall back to nadir-ideal.
-        if (!TryIntercepts(extreme, _intercepts))
-        {
-            for (int j = 0; j < _m; j++)
-            {
-                double span = _nadir[j] - _ideal[j];
-                _intercepts[j] = span > 1e-12 ? span : 1.0;
-            }
-        }
-
-        for (int j = 0; j < _m; j++)
-        {
-            if (_intercepts[j] < 1e-12)
-                _intercepts[j] = 1.0;
-        }
+        UpdateExtremePoints(population, ndIdx);
+        UpdateNadir(population, ndIdx);
 
         var normalized = new double[n][];
         for (int i = 0; i < n; i++)
         {
             normalized[i] = new double[_m];
+            var f = population[i].Objectives;
             for (int j = 0; j < _m; j++)
-                normalized[i][j] = translated[i][j] / _intercepts[j];
+            {
+                double denom = _nadir[j] - _ideal[j];
+                if (denom < 1e-12) denom = 1.0;
+                normalized[i][j] = (f[j] - _ideal[j]) / denom;
+            }
+        }
+
+        // Expose intercepts as (nadir - ideal) for diagnostics / older call sites.
+        for (int j = 0; j < _m; j++)
+        {
+            double span = _nadir[j] - _ideal[j];
+            _intercepts[j] = span > 1e-12 ? span : 1.0;
         }
 
         return normalized;
     }
 
-    private static double Asf(double[] f, int axis)
+    /// <summary>Reset persistent state (tests / fresh run). Algorithm creates a new instance per run.</summary>
+    public void Reset()
+    {
+        for (int i = 0; i < _m; i++)
+        {
+            _ideal[i] = double.PositiveInfinity;
+            _worst[i] = double.NegativeInfinity;
+            _nadir[i] = 1.0;
+            _intercepts[i] = 1.0;
+        }
+        _extremePoints = null;
+    }
+
+    private void UpdateExtremePoints(IReadOnlyList<Individual> population, int[] ndIdx)
+    {
+        // Build candidate matrix = previous extremes ∪ current ND (raw objectives).
+        int nCand = ndIdx.Length + (_extremePoints?.Length ?? 0);
+        var cand = new double[nCand][];
+        int k = 0;
+        if (_extremePoints is not null)
+        {
+            for (int i = 0; i < _extremePoints.Length; i++)
+                cand[k++] = (double[])_extremePoints[i].Clone();
+        }
+        for (int i = 0; i < ndIdx.Length; i++)
+            cand[k++] = (double[])population[ndIdx[i]].Objectives.Clone();
+
+        var extreme = new double[_m][];
+        for (int axis = 0; axis < _m; axis++)
+        {
+            int best = 0;
+            // ASF on ideal-translated objectives (pymoo __F = F - ideal).
+            double bestAsf = Asf(cand[0], axis, _ideal);
+            for (int i = 1; i < cand.Length; i++)
+            {
+                double asf = Asf(cand[i], axis, _ideal);
+                if (asf < bestAsf)
+                {
+                    bestAsf = asf;
+                    best = i;
+                }
+            }
+            extreme[axis] = (double[])cand[best].Clone();
+        }
+
+        _extremePoints = extreme;
+    }
+
+    private void UpdateNadir(IReadOnlyList<Individual> population, int[] ndIdx)
+    {
+        // Worst of front / population this generation.
+        var worstOfFront = new double[_m];
+        var worstOfPop = new double[_m];
+        for (int j = 0; j < _m; j++)
+        {
+            worstOfFront[j] = double.NegativeInfinity;
+            worstOfPop[j] = double.NegativeInfinity;
+        }
+        for (int i = 0; i < population.Count; i++)
+        {
+            var f = population[i].Objectives;
+            for (int j = 0; j < _m; j++)
+                if (f[j] > worstOfPop[j]) worstOfPop[j] = f[j];
+        }
+        for (int i = 0; i < ndIdx.Length; i++)
+        {
+            var f = population[ndIdx[i]].Objectives;
+            for (int j = 0; j < _m; j++)
+                if (f[j] > worstOfFront[j]) worstOfFront[j] = f[j];
+        }
+
+        // Hyperplane through extreme points → intercepts; nadir = ideal + intercepts.
+        if (_extremePoints is not null && TryIntercepts(_extremePoints, _ideal, out var intercepts))
+        {
+            for (int j = 0; j < _m; j++)
+            {
+                _nadir[j] = _ideal[j] + intercepts[j];
+                // pymoo: if computed nadir exceeds global worst, clamp to worst.
+                if (_nadir[j] > _worst[j])
+                    _nadir[j] = _worst[j];
+            }
+        }
+        else
+        {
+            for (int j = 0; j < _m; j++)
+                _nadir[j] = worstOfFront[j];
+        }
+
+        // Degenerate range → fall back to worst of population.
+        for (int j = 0; j < _m; j++)
+        {
+            if (_nadir[j] - _ideal[j] <= 1e-6)
+                _nadir[j] = worstOfPop[j];
+            if (_nadir[j] - _ideal[j] <= 1e-6)
+                _nadir[j] = _ideal[j] + 1.0;
+        }
+    }
+
+    /// <summary>
+    /// Achievement scalarizing function for extreme-point selection.
+    /// Preferred axis weight = 1, other axes weight = 1e-6 (divide form), equivalent to
+    /// pymoo's multiply form with preferred=1 / others=1e6. Finds the point nearest the
+    /// preferred objective axis (other objectives near zero).
+    /// </summary>
+    internal static double Asf(double[] f, int axis, double[]? ideal = null)
     {
         double max = double.NegativeInfinity;
         for (int j = 0; j < f.Length; j++)
         {
-            double w = j == axis ? 1e-6 : 1.0;
-            double v = f[j] / w;
-            if (v > max) max = v;
+            double v = ideal is null ? f[j] : f[j] - ideal[j];
+            if (v < AsfFloor) v = 0.0;
+            // Preferred axis: large weight when dividing → f/1; others: f/1e-6.
+            double w = j == axis ? 1.0 : 1e-6;
+            double scaled = v / w;
+            if (scaled > max) max = scaled;
         }
         return max;
     }
 
-    private static bool TryIntercepts(double[][] extreme, double[] intercepts)
+    /// <summary>Solve (E − ideal)·b = 1 → intercept_j = 1/b_j.</summary>
+    private static bool TryIntercepts(double[][] extreme, double[] ideal, out double[] intercepts)
     {
-        int m = intercepts.Length;
-        // Solve extreme^T * b = 1, intercept_j = 1/b_j
+        int m = ideal.Length;
+        intercepts = new double[m];
         var a = new double[m, m];
         var b = new double[m];
         for (int i = 0; i < m; i++)
         {
             b[i] = 1.0;
             for (int j = 0; j < m; j++)
-                a[i, j] = extreme[i][j];
+                a[i, j] = extreme[i][j] - ideal[j];
         }
 
         if (!SolveLinear(a, b, out var x))
@@ -142,7 +250,7 @@ public sealed class Normalization
             if (Math.Abs(x[j]) < 1e-12 || x[j] < 0)
                 return false;
             intercepts[j] = 1.0 / x[j];
-            if (double.IsNaN(intercepts[j]) || double.IsInfinity(intercepts[j]) || intercepts[j] <= 0)
+            if (double.IsNaN(intercepts[j]) || double.IsInfinity(intercepts[j]) || intercepts[j] <= 1e-6)
                 return false;
         }
         return true;
