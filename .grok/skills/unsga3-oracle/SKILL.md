@@ -9,7 +9,7 @@ description: >
 
 # Unsga3 oracle
 
-Repo root: Unsga3 (not Torquon). Confirm `Unsga3.slnx` / `tools/OracleCompare` exist before running.
+Repo root: Unsga3. Confirm `Unsga3.slnx` / `tools/OracleCompare` exist before running.
 
 ## Defaults (protocol)
 
