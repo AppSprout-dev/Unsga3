@@ -83,8 +83,9 @@ public sealed class Unsga3Algorithm
 
     /// <param name="initialPopulation">
     /// Optional seed individuals (decision variables only; re-evaluated). Used to inject a known
-    /// feasible set (e.g. Torquon grid oracle). When null or empty, a uniform random init is used.
-    /// Extra seeds beyond <see cref="_populationSize"/> are truncated; fewer are pad-filled randomly.
+    /// feasible set (e.g. a domain-adapter warm-start or grid seed). When null or empty, a uniform
+    /// random init is used. Extra seeds beyond <see cref="_populationSize"/> are truncated; fewer
+    /// are pad-filled randomly.
     /// </param>
     public OptimizationResult Run(
         IProblem problem,

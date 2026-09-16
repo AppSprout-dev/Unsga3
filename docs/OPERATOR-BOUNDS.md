@@ -9,4 +9,4 @@ That repository works on the still-open completely-bounded analogue and multi-op
 - No code or data dependency is required by Unsga3.
 - Do not open PRs or write into `crouzeix-extensions` from this repository (and vice versa).
 
-When Unsga3 is used in hybrid loops with physics-based local search or matrix-function evaluations (e.g. inside Torquon-GB or Hygra pipelines), the sharp scalar factor 2 can tighten residual and approximation bounds on non-normal operators.
+When Unsga3 is used in hybrid loops with physics-based local search or matrix-function evaluations, the sharp scalar factor 2 can tighten residual and approximation bounds on non-normal operators.
