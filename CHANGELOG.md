@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
+
 ## [0.1.3] — 2026-08-10
 
 ### Added

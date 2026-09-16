@@ -90,6 +90,31 @@ dotnet run --project samples/BasicUsage -c Release
 
 Requires **.NET 10** SDK. Optional oracle: Python 3 + `pip install pymoo` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## TypeSafe / Jev Pareto scoring (optional)
+
+After a classical U-NSGA-III front, you can run a **TypeSafe System One** (Jev) pass over a small candidate sample and compare calibrated Score / Choice answers to raw objective vectors. This is an **additive semantic layer** — it does **not** replace NSGA-III / U-NSGA-III objectives, constraint-domination, or IGD.
+
+The helper lives in `tools/typesafe-pareto/` (stdlib Python; official `typesafe-sdk` is optional for live calls). One `POST /v1/systemone` fans out per-candidate **Score** (`constraint_satisfaction`, `diversity_value`, `exploit_vs_explore`) and **Choice** (`keep` | `drop` | `review`). Smoke batches ≤10 fixture candidates.
+
+```bash
+# Mock (default when TYPESAFE_API_KEY is unset; what CI runs)
+python tools/typesafe-pareto/score_pareto.py --smoke --force-mock
+
+# Live Jev (key from the environment only — never commit it)
+export TYPESAFE_API_KEY=...          # https://docs.typesafe.ai/sdk/python.md
+pip install -r tools/typesafe-pareto/requirements-optional.txt   # optional SDK
+python tools/typesafe-pareto/score_pareto.py --smoke
+python tools/typesafe-pareto/score_pareto.py --candidates path/to/front.json
+```
+
+Candidate JSON is an object with `candidates` (or `NonDominatedSolutions`), each with `objectives` and optional `variables` / `constraints` / `constraint_violation` / `feasible` / `rank`. A synthetic ZDT1-like fixture is at `tools/typesafe-pareto/fixtures/zdt1_candidates.json`.
+
+Metrics append one JSON line per run to **`metrics/typesafe-runs.jsonl`** (gitignored):
+
+`{ts, experiment:"unsga3_pareto_score", repo:"AppSprout-dev/Unsga3", model, latency_ms, usage, candidate_count, answers, notes}`
+
+API docs used: [HTTP](https://docs.typesafe.ai/api.md) · [Python SDK](https://docs.typesafe.ai/sdk/python.md) · [fan-out](https://docs.typesafe.ai/patterns/fan-out.md). No API keys in this repo.
+
 ## Equivalence & research
 
 | Doc | Contents |
@@ -110,6 +135,8 @@ Unsga3/
 ├── samples/BasicUsage/
 ├── tools/oracle/            # pymoo oracle + multi-seed stats (optional)
 ├── tools/OracleCompare/     # C# side of the oracle
+├── tools/typesafe-pareto/   # optional TypeSafe / Jev Score+Choice on a front sample
+├── metrics/                 # typesafe-runs.jsonl (local; gitignored)
 ├── docs/
 └── .github/workflows/       # CI + GitHub Packages publish
 ```

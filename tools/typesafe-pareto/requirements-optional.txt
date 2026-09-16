@@ -1,0 +1,3 @@
+# Live System One calls only. CI and --force-mock use stdlib + fixtures.
+# Docs: https://docs.typesafe.ai/sdk/python.md
+typesafe-sdk

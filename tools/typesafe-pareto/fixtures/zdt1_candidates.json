@@ -1,0 +1,82 @@
+{
+  "problem": "zdt1",
+  "algorithm": "U-NSGA-III",
+  "source": "synthetic-fixture",
+  "notes": "Synthetic ZDT1-like points for TypeSafe / Jev smoke. Pareto-optimal ZDT1 satisfies f2 = 1 - sqrt(f1).",
+  "candidates": [
+    {
+      "id": "c0",
+      "variables": [0.0],
+      "objectives": [0.0, 1.0],
+      "constraints": [],
+      "constraint_violation": 0.0,
+      "feasible": true,
+      "rank": 0
+    },
+    {
+      "id": "c1",
+      "variables": [0.1],
+      "objectives": [0.1, 0.6838],
+      "constraints": [],
+      "constraint_violation": 0.0,
+      "feasible": true,
+      "rank": 0
+    },
+    {
+      "id": "c2",
+      "variables": [0.25],
+      "objectives": [0.25, 0.5],
+      "constraints": [],
+      "constraint_violation": 0.0,
+      "feasible": true,
+      "rank": 0
+    },
+    {
+      "id": "c3",
+      "variables": [0.5],
+      "objectives": [0.5, 0.2929],
+      "constraints": [],
+      "constraint_violation": 0.0,
+      "feasible": true,
+      "rank": 0
+    },
+    {
+      "id": "c4",
+      "variables": [0.75],
+      "objectives": [0.75, 0.134],
+      "constraints": [],
+      "constraint_violation": 0.0,
+      "feasible": true,
+      "rank": 0
+    },
+    {
+      "id": "c5",
+      "variables": [1.0],
+      "objectives": [1.0, 0.0],
+      "constraints": [],
+      "constraint_violation": 0.0,
+      "feasible": true,
+      "rank": 0
+    },
+    {
+      "id": "c6",
+      "variables": [0.5],
+      "objectives": [0.5, 0.6],
+      "constraints": [],
+      "constraint_violation": 0.0,
+      "feasible": true,
+      "rank": 1,
+      "notes": "Dominated / off-front: ZDT1 PF at f1=0.5 is f2≈0.2929"
+    },
+    {
+      "id": "c7",
+      "variables": [0.4],
+      "objectives": [0.4, 0.3675],
+      "constraints": [0.25],
+      "constraint_violation": 0.25,
+      "feasible": false,
+      "rank": 0,
+      "notes": "Infeasible (g>0); included so constraint_satisfaction has a negative case"
+    }
+  ]
+}
