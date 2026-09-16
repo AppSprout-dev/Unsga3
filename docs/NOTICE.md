@@ -25,6 +25,7 @@ See also `CITATION.cff` for citing **this** software.
 |---------|-------------------|---------------|
 | [pymoo](https://pymoo.org/) | Apache-2.0 | **Oracle only** — external Python scripts under `tools/oracle/` compare IGD and fronts. **Not** linked into the NuGet package. |
 | NumPy / SciPy (via pymoo env) | BSD | Optional stats / oracle scripts |
+| [TypeSafe](https://docs.typesafe.ai/) / Jev | hosted API | Optional `tools/typesafe-pareto` System One Score/Choice pass. **Not** linked into the NuGet package; live calls need a local `TYPESAFE_API_KEY`. |
 
 No pymoo or SciPy code is vendored in `src/`.
 

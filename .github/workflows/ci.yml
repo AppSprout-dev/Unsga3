@@ -38,3 +38,18 @@ jobs:
           name: nupkg
           path: artifacts/*.nupkg
           if-no-files-found: error
+
+  typesafe-pareto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Mock tests
+        run: python -m unittest tools/typesafe-pareto/test_score_pareto.py -v
+
+      - name: Smoke (mock)
+        run: python tools/typesafe-pareto/score_pareto.py --smoke --force-mock --metrics metrics/typesafe-runs.jsonl

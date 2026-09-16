@@ -7,7 +7,9 @@
 | 0.1.x   | Yes       |
 | &lt; 0.1  | No        |
 
-This is a pure numerical optimization library with **no network surface** and no default deserialization of untrusted input. Risk is mainly supply-chain (NuGet) and misuse in safety-critical decision systems.
+This is a pure numerical optimization library with **no network surface** in the NuGet package and no default deserialization of untrusted input. Risk is mainly supply-chain (NuGet) and misuse in safety-critical decision systems.
+
+The optional `tools/typesafe-pareto` helper may call `https://api.typesafe.ai/v1/systemone` when `TYPESAFE_API_KEY` is set. Do not commit API keys or `.env` files.
 
 ## Reporting a vulnerability
 

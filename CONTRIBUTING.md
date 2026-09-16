@@ -12,6 +12,7 @@ Thanks for your interest. This library aims to be a **faithful, well-tested** U-
 
 - **.NET 10 SDK** ([download](https://dotnet.microsoft.com/download))
 - Optional (oracle / multi-seed stats): Python 3.10+ with `pip install pymoo`
+- Optional (TypeSafe / Jev Pareto scores): Python 3.10+; live calls need `TYPESAFE_API_KEY` (never commit it)
 
 ```bash
 git clone https://github.com/AppSprout-dev/Unsga3.git
@@ -33,6 +34,15 @@ python tools/oracle/run_multiseed_wilcoxon.py --problems zdt1 dtlz2 --seeds 15
 ```
 
 See [`docs/EQUIVALENCE.md`](docs/EQUIVALENCE.md) and [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md).
+
+### TypeSafe / Jev Pareto scoring (optional)
+
+```bash
+python -m unittest tools/typesafe-pareto/test_score_pareto.py -v
+python tools/typesafe-pareto/score_pareto.py --smoke --force-mock
+```
+
+Live System One calls run only when `TYPESAFE_API_KEY` is set. Metrics append to `metrics/typesafe-runs.jsonl` (gitignored). This path does not change algorithm defaults or oracle results.
 
 Grok Build skills (maintainers): `/unsga3-oracle` · `/unsga3-release` under [`.grok/skills/`](.grok/skills/).
 
@@ -64,7 +74,8 @@ Grok Build skills (maintainers): `/unsga3-oracle` · `/unsga3-release` under [`.
 - One logical change per PR
 - Update [`CHANGELOG.md`](CHANGELOG.md) under **Unreleased** when user-visible
 - If you touch survival / normalization / metrics, note oracle impact (or re-run multi-seed)
-- Do not commit `tools/oracle/out/` front CSVs
+- Do not commit `tools/oracle/out/` front CSVs or `metrics/typesafe-runs.jsonl`
+- Do not commit API keys (`.env` is gitignored; use `TYPESAFE_API_KEY` locally only)
 
 ## Reporting bugs
 
