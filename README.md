@@ -6,7 +6,7 @@
 
 **U-NSGA-III** (Unified NSGA-III) for .NET — single-, multi-, and many-objective evolutionary optimization with Das–Dennis reference directions, SBX crossover, polynomial mutation, and **niching-based tournament selection** ([Seada & Deb, 2016](https://ieeexplore.ieee.org/document/7271063)).
 
-> **v0.1.2** — production-usable core with pymoo-aligned normalization.  
+> **v0.1.4** — production-usable core with pymoo-aligned normalization. ZDT2 quality protocol is gens=250 (docs/defaults; no algorithm/API change).  
 > **15-seed IGD vs pymoo `UNSGA3`:** ZDT1 **median 0.053 vs 0.070** (we win; MWU *p*≈0.05); DTLZ2 **median 0.0045 vs 0.0028** (~1.6×, same order; pymoo still ahead).  
 > Details: [`docs/WILCOXON-RESULTS.md`](docs/WILCOXON-RESULTS.md) · single-seed notes: [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md)
 
@@ -121,7 +121,7 @@ API docs used: [HTTP](https://docs.typesafe.ai/api.md) · [Python SDK](https://d
 |-----|----------|
 | [docs/ORACLE-RESULTS.md](docs/ORACLE-RESULTS.md) | Single-seed C# vs pymoo |
 | [docs/WILCOXON-RESULTS.md](docs/WILCOXON-RESULTS.md) | Multi-seed Mann–Whitney / Wilcoxon |
-| [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) | Protocol & intentional deltas |
+| [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) | Protocol & intentional deltas (ZDT2 quality A/B = gens=250, `PymooCompatible`; matches unsga3-bend) |
 | [docs/RESEARCH-STANDARDS.md](docs/RESEARCH-STANDARDS.md) | Literature + indicator standards |
 | [docs/NOTICE.md](docs/NOTICE.md) | Attribution (papers + validation tools) |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Near / medium term plan |

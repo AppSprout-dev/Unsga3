@@ -22,6 +22,16 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
 5. **Tolerance:** median IGD within ~1–2× of pymoo on ZDT/DTLZ is the practical bar.
    15-seed: ZDT1 median **better** than pymoo (ratio 0.76, MWU n.s.); DTLZ2 median ~**1.6×** (pymoo still ahead).
 
+Published A/B budgets (ZDT1 / DTLZ2 unchanged; ZDT2 matches unsga3-bend protocol honesty):
+
+| Problem | Pop | Gens | Partitions | C# tournament (quality) |
+|---------|-----|------|------------|-------------------------|
+| ZDT1 | 52 | 100 | 12 | `RankNicheDistance` (published Wilcoxon) |
+| ZDT2 | 52 | **250** | 12 | `PymooCompatible` (A/B quality) |
+| DTLZ2 | 92 | 150 | 12 | `PymooCompatible` |
+
+ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo), not the quality bar. `RankNicheDistance` on ZDT2 is an optional unpublished Wilcoxon mating mode — do not silently switch all ZDT defaults to it. C# has no published ZDT2 IGD / Wilcoxon table; do not invent one.
+
 ## Problems (must-pass)
 
 | Class | Problems | M | In library |

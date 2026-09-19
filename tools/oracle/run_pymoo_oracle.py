@@ -9,6 +9,9 @@ Fixed protocol (docs/EQUIVALENCE.md + RESEARCH-STANDARDS.md):
 Usage:
   python run_pymoo_oracle.py
   python run_pymoo_oracle.py --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
+  python run_pymoo_oracle.py --problem zdt2 --partitions 12 --pop 52 --seed 1
+  # omitted --gens on zdt2 is 250 (quality protocol; matches unsga3-bend A/B).
+  # --gens 100 is an early-stress snapshot, not the quality bar.
 """
 from __future__ import annotations
 
@@ -20,15 +23,33 @@ from pathlib import Path
 import numpy as np
 
 
+def default_gens(problem: str) -> int:
+    """Quality-protocol generations when --gens is omitted.
+
+    ZDT2 A/B default is 250 (unsga3-bend honesty). ZDT1 stays 100.
+    DTLZ2 stays 100 here so existing callers that omit --gens are unchanged;
+    the published DTLZ2 oracle still passes --gens 150.
+    """
+    if problem == "zdt2":
+        return 250
+    return 100
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--problem", default="zdt1", choices=["zdt1", "zdt2", "dtlz2"])
     p.add_argument("--partitions", type=int, default=12)
     p.add_argument("--pop", type=int, default=None, help="default = n_ref_dirs")
-    p.add_argument("--gens", type=int, default=100)
+    p.add_argument(
+        "--gens",
+        type=int,
+        default=None,
+        help="generations (default: zdt2=250, else 100; explicit value always wins)",
+    )
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--out-dir", type=Path, default=Path(__file__).resolve().parent / "out")
     args = p.parse_args()
+    gens = args.gens if args.gens is not None else default_gens(args.problem)
 
     try:
         from pymoo.algorithms.moo.unsga3 import UNSGA3
@@ -56,12 +77,12 @@ def main() -> int:
     algo = UNSGA3(ref_dirs, pop_size=pop)
 
     print(f"pymoo UNSGA3 | problem={args.problem} M={n_obj} refs={len(ref_dirs)} "
-          f"pop={pop} gens={args.gens} seed={args.seed}")
+          f"pop={pop} gens={gens} seed={args.seed}")
 
     res = minimize(
         problem,
         algo,
-        ("n_gen", args.gens),
+        ("n_gen", gens),
         seed=args.seed,
         verbose=False,
         save_history=False,
@@ -71,7 +92,7 @@ def main() -> int:
     igd = float(IGD(pf)(F))
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    stem = f"pymoo_{args.problem}_p{args.partitions}_pop{pop}_g{args.gens}_s{args.seed}"
+    stem = f"pymoo_{args.problem}_p{args.partitions}_pop{pop}_g{gens}_s{args.seed}"
     f_path = args.out_dir / f"{stem}_F.csv"
     meta_path = args.out_dir / f"{stem}_meta.json"
     np.savetxt(f_path, F, delimiter=",")
@@ -83,7 +104,7 @@ def main() -> int:
         "partitions": args.partitions,
         "n_ref_dirs": int(len(ref_dirs)),
         "pop_size": pop,
-        "n_gen": args.gens,
+        "n_gen": gens,
         "seed": args.seed,
         "n_solutions": int(F.shape[0]),
         "igd": igd,

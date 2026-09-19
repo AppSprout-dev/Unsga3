@@ -16,7 +16,10 @@ Repo root: Unsga3. Confirm `Unsga3.slnx` / `tools/OracleCompare` exist before ru
 | Problem | Partitions | Pop | Gens | C# tournament |
 |---------|------------|-----|------|----------------|
 | zdt1 | 12 | 52 | 100 | default (`RankNicheDistance`) |
+| zdt2 | 12 | 52 | **250** | `--pymoo-mode` (`PymooCompatible`) |
 | dtlz2 | 12 | 92 | 150 | `--pymoo-mode` (`PymooCompatible`) |
+
+ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo), not the quality bar. Quality protocol matches unsga3-bend A/B (gens=250, PymooCompatible). `RankNicheDistance` is an optional unpublished Wilcoxon ZDT2 mating mode — do not silently switch all ZDT defaults to it. ZDT1 and DTLZ2 unchanged.
 
 IGD = **mean** nearest Euclidean distance (pymoo-compatible). Docs: `docs/EQUIVALENCE.md`, `docs/RESEARCH-STANDARDS.md`.
 
@@ -31,8 +34,10 @@ Ask which mode if unclear; default **quick** when validating a small fix, **full
 ```powershell
 dotnet build tools/OracleCompare -c Release
 dotnet run --project tools/OracleCompare -c Release --no-build -- --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
+dotnet run --project tools/OracleCompare -c Release --no-build -- --problem zdt2 --partitions 12 --pop 52 --seed 1 --pymoo-mode
 dotnet run --project tools/OracleCompare -c Release --no-build -- --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1 --pymoo-mode
 python tools/oracle/run_pymoo_oracle.py --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
+python tools/oracle/run_pymoo_oracle.py --problem zdt2 --partitions 12 --pop 52 --seed 1
 python tools/oracle/run_pymoo_oracle.py --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1
 ```
 

@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
 
+## [0.1.4] — 2026-09-19
+
+### Changed
+
+- **ZDT2 oracle/smoke protocol:** quality bar is **gens=250** + `PymooCompatible` (docs and harness defaults). gens=100 is an early-stress snapshot (collapse on Bend, C#, and pymoo), not the quality bar. `RankNicheDistance` stays an optional unpublished Wilcoxon ZDT2 mating mode. ZDT1 (100) and DTLZ2 (150) unchanged. **No algorithm or public API change.** Matches [unsga3-bend](https://github.com/AppSprout-dev/unsga3-bend) A/B honesty.
+
 ## [0.1.3] — 2026-08-10
 
 ### Added
@@ -60,7 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Benchmarks: ZDT1–4/6, DTLZ1–4/7, Sphere / Ackley / Rosenbrock
 - Metrics: IGD, GD, 2-D HV; self-tests + GitHub Packages publish workflow
 
-[Unreleased]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/AppSprout-dev/Unsga3/releases/tag/v0.1.0
