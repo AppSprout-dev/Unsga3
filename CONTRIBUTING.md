@@ -28,6 +28,9 @@ dotnet run --project samples/BasicUsage -c Release
 # single seed
 dotnet run --project tools/OracleCompare -c Release -- --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1 --pymoo-mode
 python tools/oracle/run_pymoo_oracle.py --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1
+# ZDT2 quality protocol: omitted --gens is 250 + --pymoo-mode (matches unsga3-bend).
+# --gens 100 is an early-stress snapshot. RankNicheDistance (omit --pymoo-mode) is optional.
+dotnet run --project tools/OracleCompare -c Release -- --problem zdt2 --partitions 12 --pop 52 --seed 1 --pymoo-mode
 
 # multi-seed Mann–Whitney / Wilcoxon (writes docs/WILCOXON-RESULTS.md)
 python tools/oracle/run_multiseed_wilcoxon.py --problems zdt1 dtlz2 --seeds 15

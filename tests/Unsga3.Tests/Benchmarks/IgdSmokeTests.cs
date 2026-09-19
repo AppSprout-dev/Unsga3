@@ -9,6 +9,9 @@ namespace Unsga3.Tests.Benchmarks;
 /// <summary>
 /// Fixed-seed IGD smoke bars — not full pymoo equivalence (see docs/EQUIVALENCE.md).
 /// Bounds are intentionally loose; tighten after oracle harness lands.
+/// ZDT2 quality A/B is gens=250 + <see cref="TournamentMode.PymooCompatible"/>
+/// (matches unsga3-bend). The ZDT2 smoke below keeps ctor-default
+/// <see cref="TournamentMode.RankNicheDistance"/> and a loose IGD bar.
 /// </summary>
 public class IgdSmokeTests
 {
@@ -40,10 +43,13 @@ public class IgdSmokeTests
         var problem = new Zdt2Problem();
         var dirs = ReferenceDirections.DasDennis(2, 12);
         var algo = new Unsga3Algorithm(dirs, populationSize: 52, seed: 2);
-        var result = algo.Run(problem, maxGenerations: 150);
+        var result = algo.Run(problem, maxGenerations: 250);
         var obtained = result.NonDominatedSolutions.Select(i => i.Objectives).ToArray();
         double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, ParetoFronts.Zdt2());
-        // ZDT2 non-convex; mean-IGD smoke bar (not oracle parity).
+        // Loose CI smoke, not oracle parity. Quality A/B is gens=250 + PymooCompatible
+        // (matches unsga3-bend). gens=100 is an early-stress snapshot (collapse on
+        // Bend, C#, and pymoo). This test keeps the ctor default RankNicheDistance
+        // (optional unpublished Wilcoxon ZDT2 mating mode) and IGD < 0.75.
         Assert.True(igd < 0.75, $"ZDT2 IGD={igd}");
     }
 

@@ -10,11 +10,16 @@ using Unsga3.Utilities;
 // Fixed-protocol C# side of the pymoo oracle (see tools/oracle/run_pymoo_oracle.py).
 //
 //   dotnet run --project tools/OracleCompare -- --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1 --pymoo-mode
+//   # ZDT2 quality protocol (matches unsga3-bend A/B): gens=250 + --pymoo-mode.
+//   # Omitted --gens on --problem zdt2 is 250. gens=100 is an early-stress snapshot.
+//   # RankNicheDistance (omit --pymoo-mode) is optional, not the ZDT2 A/B default.
+//   dotnet run --project tools/OracleCompare -- --problem zdt2 --partitions 12 --pop 52 --seed 1 --pymoo-mode
 
 string problemName = "zdt1";
 int partitions = 12;
 int? pop = null;
 int gens = 100;
+bool gensExplicit = false;
 int seed = 1;
 bool pymooMode = false;
 string? outDir = null;
@@ -26,12 +31,20 @@ for (int i = 0; i < args.Length; i++)
         case "--problem": problemName = args[++i]; break;
         case "--partitions": partitions = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
         case "--pop": pop = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
-        case "--gens": gens = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
+        case "--gens":
+            gens = int.Parse(args[++i], CultureInfo.InvariantCulture);
+            gensExplicit = true;
+            break;
         case "--seed": seed = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
         case "--pymoo-mode": pymooMode = true; break;
         case "--out-dir": outDir = args[++i]; break;
     }
 }
+
+// Quality protocol: ZDT2 A/B default is gens=250 (unsga3-bend honesty).
+// ZDT1 stays 100; DTLZ2 callers still pass --gens 150. Explicit --gens always wins.
+if (!gensExplicit && problemName.Equals("zdt2", StringComparison.OrdinalIgnoreCase))
+    gens = 250;
 
 IProblem problem;
 int m;

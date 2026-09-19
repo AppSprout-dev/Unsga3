@@ -121,7 +121,7 @@ API docs used: [HTTP](https://docs.typesafe.ai/api.md) · [Python SDK](https://d
 |-----|----------|
 | [docs/ORACLE-RESULTS.md](docs/ORACLE-RESULTS.md) | Single-seed C# vs pymoo |
 | [docs/WILCOXON-RESULTS.md](docs/WILCOXON-RESULTS.md) | Multi-seed Mann–Whitney / Wilcoxon |
-| [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) | Protocol & intentional deltas |
+| [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) | Protocol & intentional deltas (ZDT2 quality A/B = gens=250, `PymooCompatible`; matches unsga3-bend) |
 | [docs/RESEARCH-STANDARDS.md](docs/RESEARCH-STANDARDS.md) | Literature + indicator standards |
 | [docs/NOTICE.md](docs/NOTICE.md) | Attribution (papers + validation tools) |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Near / medium term plan |

@@ -5,6 +5,11 @@ Multi-seed IGD oracle: Unsga3 (C#) vs pymoo UNSGA3 + Mann–Whitney U / Wilcoxon
 Protocol matches docs/EQUIVALENCE.md and docs/RESEARCH-STANDARDS.md:
   15 independent seeds (default), fixed SBX/PM/Das–Dennis settings.
 
+ZDT2 quality protocol is gens=250 + PymooCompatible (matches unsga3-bend A/B).
+gens=100 is an early-stress snapshot. RankNicheDistance (csharp_pymoo_mode=False)
+is an optional unpublished Wilcoxon mating mode — not the ZDT2 A/B default.
+ZDT1 and DTLZ2 budgets are unchanged.
+
 Usage:
   python tools/oracle/run_multiseed_wilcoxon.py
   python tools/oracle/run_multiseed_wilcoxon.py --problems zdt1 dtlz2 --seeds 15 --skip-pymoo
@@ -38,7 +43,10 @@ class Protocol:
 
 PROTOCOLS: dict[str, Protocol] = {
     "zdt1": Protocol("zdt1", partitions=12, pop=52, gens=100, n_obj=2, csharp_pymoo_mode=False),
-    "zdt2": Protocol("zdt2", partitions=12, pop=52, gens=100, n_obj=2, csharp_pymoo_mode=False),
+    # Quality A/B (unsga3-bend honesty): 250 gens, PymooCompatible.
+    # Optional: csharp_pymoo_mode=False (RankNicheDistance) + gens=100 is the
+    # unpublished Wilcoxon ZDT2 mating snapshot — do not treat it as the default.
+    "zdt2": Protocol("zdt2", partitions=12, pop=52, gens=250, n_obj=2, csharp_pymoo_mode=True),
     "dtlz2": Protocol("dtlz2", partitions=12, pop=92, gens=150, n_obj=3, csharp_pymoo_mode=True),
 }
 

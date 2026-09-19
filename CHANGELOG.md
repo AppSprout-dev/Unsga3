@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
+- **ZDT2 evaluation protocol honesty** (matches [unsga3-bend](https://github.com/AppSprout-dev/unsga3-bend) A/B): quality bar is **gens=250** + `PymooCompatible`. gens=100 is an early-stress snapshot (collapse on Bend, C#, and pymoo), not the quality bar. `RankNicheDistance` stays an optional unpublished Wilcoxon ZDT2 mating mode — not a silent default for all ZDT problems. ZDT1 (100) and DTLZ2 (150) unchanged. No algorithm / PackageId change.
 
 ## [0.1.3] — 2026-08-10
 

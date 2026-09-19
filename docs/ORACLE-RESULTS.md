@@ -20,12 +20,20 @@ Reproduce:
 # Python
 pip install pymoo
 python tools/oracle/run_pymoo_oracle.py --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
+python tools/oracle/run_pymoo_oracle.py --problem zdt2 --partitions 12 --pop 52 --seed 1
 python tools/oracle/run_pymoo_oracle.py --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1
 
 # C#
 dotnet run --project tools/OracleCompare -c Release -- --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
+dotnet run --project tools/OracleCompare -c Release -- --problem zdt2 --partitions 12 --pop 52 --seed 1 --pymoo-mode
 dotnet run --project tools/OracleCompare -c Release -- --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1 --pymoo-mode
 ```
+
+Omitted `--gens` on `--problem zdt2` is **250** (quality protocol). `--gens 100` is an early-stress snapshot. ZDT1 stays 100; DTLZ2 stays 150.
+
+### ZDT2 protocol honesty (matches unsga3-bend)
+
+C# never published a hard ZDT2 oracle / Wilcoxon table. The unpublished Wilcoxon harness used **gens=100** and **`RankNicheDistance`**. That budget collapses on Bend, C#, and pymoo (axis pile near `f1≈0`). **gens=250 + `PymooCompatible`** is the quality A/B bar (15-seed: 0/15 collapse on both stacks; see [unsga3-bend PR #17](https://github.com/AppSprout-dev/unsga3-bend/pull/17) / `docs/ZDT2_COLLAPSE.md`). `RankNicheDistance` remains an **optional** Wilcoxon mating mode — do not silently switch all ZDT defaults to it. This repo does not invent a ZDT2 IGD table here.
 
 ## Results (seed=1)
 
@@ -69,8 +77,11 @@ Deep-dive vs pymoo `HyperplaneNormalization` / `ReferenceDirectionSurvival` (pym
 | Test | Bar |
 |------|-----|
 | ZDT1 seed=1, 100 gen, default tournament | IGD ≤ 1.5 × 0.0629 |
+| ZDT2 seed=2, 250 gen, default `RankNicheDistance` | IGD &lt; 0.75 (loose CI smoke, not oracle parity) |
 | DTLZ2 seed=1, 150 gen, pymoo-mode | IGD ≤ 3 × 0.00350 (currently ~1.15×) |
 | DTLZ2 short smoke (80 gen) | IGD &lt; 0.15 |
+
+ZDT2 quality A/B is gens=250 + `PymooCompatible` (not the loose smoke bar). ZDT1 / DTLZ2 shipping bars are unchanged.
 
 ## Known remaining deltas (intentional / minor)
 

@@ -77,9 +77,12 @@ Typical ZDT: r = (1.1, 1.1). Always document r; never compare HV across differen
 1. Same problem definition (bounds, n, evaluate)  
 2. Same Das–Dennis partitions → identical ref set size  
 3. Same pop, gens, SBX/PM η, p_m = 1/n  
+   - ZDT1: pop=52, **gens=100**  
+   - ZDT2 quality A/B: pop=52, **gens=250**, `PymooCompatible` (matches unsga3-bend). gens=100 is an early-stress snapshot, not the quality bar. `RankNicheDistance` is optional, not the ZDT2 default.  
+   - DTLZ2: pop=92, **gens=150**, `PymooCompatible`  
 4. Fixed seed **or** 15–31 seeds → median + IQR IGD  
 5. Compare IGD (and HV for M=2) to pymoo `UNSGA3`  
-6. Shipping bar: median IGD within ~1–2% of pymoo on ZDT1/DTLZ2 (or non-inferior Wilcoxon)
+6. Shipping bar: median IGD within ~1–2% of pymoo on ZDT1/DTLZ2 (or non-inferior Wilcoxon). ZDT2 has no published C# Wilcoxon table; quality budget is 250 gens.
 
 Export path: dump final `F` as CSV from both sides; compute IGD in this library.
 
