@@ -11,7 +11,7 @@ body:
     id: version
     attributes:
       label: Unsga3 version / commit
-      placeholder: "0.1.4 or git SHA"
+      placeholder: "0.1.5 or git SHA"
     validations:
       required: true
   - type: textarea
