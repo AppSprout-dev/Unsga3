@@ -22,6 +22,8 @@ pip install pymoo
 python tools/oracle/run_pymoo_oracle.py --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
 python tools/oracle/run_pymoo_oracle.py --problem zdt2 --partitions 12 --pop 52 --seed 1
 python tools/oracle/run_pymoo_oracle.py --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1
+# DTLZ2 default is n_var=12 (k=10), matching Dtlz2Problem. pymoo's own default is n_var=10 (k=8).
+# Pass --n-var 10 only to reproduce the historical mismatched column.
 
 # C#
 dotnet run --project tools/OracleCompare -c Release -- --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
@@ -39,8 +41,27 @@ C# never published a hard ZDT2 oracle / Wilcoxon table. The unpublished Wilcoxon
 
 | Problem | Settings | pymoo IGD | C# default IGD | C# `PymooCompatible` IGD | Verdict |
 |---------|----------|-----------|----------------|--------------------------|---------|
-| **ZDT1** | p=12, pop=52, 100 gen | **0.0629** (n=13 ND) | **0.0514** (n=52) | — | **Default wins** |
-| **DTLZ2** | p=12, pop=92, 150 gen | **0.00350** (n=91) | 0.0070 (n=92) | **0.00403** (n=92) | **~1.15× pymoo** (pymoo-mode) |
+| **ZDT1** | p=12, pop=52, 100 gen | **0.0629** (`res.F`, n=13) | **0.0514** (full ND front, n=52) | — | Different sets. Not an algorithm ranking. |
+| **DTLZ2** | p=12, pop=92, 150 gen, **mismatched k** | **0.00350** (n=91, pymoo **n_var=10**, k=8) | 0.0070 (n=92, n_var=12) | **0.00403** (n=92, n_var=12) | Historical pair only. Not a same-problem ratio. |
+
+### ZDT fronts (same run, different sets)
+
+C# `OracleCompare` scores the **full feasible non-dominated front** (here n=52) against `ParetoFronts.Zdt1(500)`. pymoo's oracle scores **`res.F`**, the survival niche set (here n=13, one per Das–Dennis direction), against pymoo's 100-point `pareto_front()`. The published 0.0514 vs 0.0629 pair is those two reporters. It is not evidence that the algorithm is better by ~0.011 IGD.
+
+Seed 1 remeasured **2026-09-22**, pymoo 0.6.2. The C# console reprinted the published scalar.
+
+| Set | Reference front | n | IGD |
+|-----|-----------------|--:|----:|
+| C# non-dominated front | library 500-point ZDT1 | 52 | 0.051430749249856716 (console 0.0514307) |
+| C# non-dominated front | pymoo 100-point PF | 52 | 0.05119280568479224 |
+| pymoo final population, non-dominated | pymoo 100-point PF | 52 | 0.05378307132263516 |
+| pymoo `res.F` | pymoo 100-point PF | 13 | 0.0628633417931784 |
+| pymoo `res.F` | library 500-point ZDT1 | 13 | 0.06276449352608372 |
+| pymoo population ND | library 500-point ZDT1 | 52 | 0.05381261662420749 |
+
+On the shared 100-point PF, the full-front pair is C# 0.05119280568479224 and pymoo 0.05378307132263516. One seed cannot carry a ranking. Switching the C# front from the 500-point sampler to that 100-point PF changes its IGD by 0.051430749249856716 − 0.05119280568479224 = 2.37943565064476×10⁻⁴, which is much smaller than the 13-versus-52 gap on pymoo's own PF (0.0628633417931784 − 0.05378307132263516 = 0.00908027047054324).
+
+`ReferenceDirectionThinning.OnePerDirection` keeps the raw objective vector closest (perpendicular distance) to each Das–Dennis direction. On this C# front that helper kept 13 points and scored **0.06357076535717451** against the 100-point PF. That set is not `res.F`. The 15-seed pymoo column is still `res.F`, so its median ratio inherits the same asymmetry. Do not rewrite [WILCOXON-RESULTS.md](WILCOXON-RESULTS.md) until those seeds are re-run on a shared front definition.
 
 ### DTLZ2 multi-seed (C# `PymooCompatible`, same protocol)
 
@@ -53,7 +74,27 @@ C# never published a hard ZDT2 oracle / Wilcoxon table. The unpublished Wilcoxon
 | 5 | 0.00466 |
 | **mean** | **~0.00485** |
 
-All seeds stay in the same band as pymoo’s single-seed 0.0035 (within ~1.4–1.6×).
+Those five C# seeds are `Dtlz2Problem(k: 10)` (n_var=12). The 0.0035 figure they were compared with is pymoo at **n_var=10** (k=8). That is not a same-problem band. The 15-seed file is unchanged until a matched re-run (see below).
+
+### DTLZ2 n_var (known mismatch, seed 1 remeasured)
+
+`Dtlz2Problem(nObjectives: 3, k: 10)` builds **n = 12**. Deb et al. suggest k = 10. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k = 8). The harness used to omit `n_var`, so the published seed-1 pair and `docs/WILCOXON-RESULTS.md` compare those two dimensions. `tools/oracle/run_pymoo_oracle.py` now passes **n_var=12**.
+
+Published mismatched seed 1 (already in the Wilcoxon table; not re-interpreted as parity):
+
+| Solver | n_var | k | IGD |
+|--------|------:|--:|----:|
+| C# `PymooCompatible` | 12 | 10 | 0.00403168 |
+| pymoo default | 10 | 8 | 0.00349879 |
+
+Seed 1 remeasured **2026-09-22** with pymoo 0.6.2 after the oracle passes `n_var=12`. Console figures are the `G6` print; the second number is the meta-file value. Front sizes are what each reporter wrote (`res.F` vs full non-dominated front).
+
+| Solver | n_var | k | Console IGD | Meta IGD | Front |
+|--------|------:|--:|------------:|---------:|------:|
+| C# `PymooCompatible` | 12 | 10 | 0.00403168 | 0.004031675764658275 | 92 |
+| pymoo `n_var=12` | 12 | 10 | 0.00308392 | 0.003083921253245871 | 91 |
+
+Ratio of the two meta IGDs: 0.004031675764658275 / 0.003083921253245871 = **1.30732**. That is one seed, and the fronts still differ by one point (92 vs 91). It is not a 15-seed ranking and it does not replace the Wilcoxon table.
 
 ## Root cause of the old ~5× DTLZ2 gap (fixed)
 
@@ -78,7 +119,7 @@ Deep-dive vs pymoo `HyperplaneNormalization` / `ReferenceDirectionSurvival` (pym
 |------|-----|
 | ZDT1 seed=1, 100 gen, default tournament | IGD ≤ 1.5 × 0.0629 |
 | ZDT2 seed=2, 250 gen, default `RankNicheDistance` | IGD &lt; 0.75 (loose CI smoke, not oracle parity) |
-| DTLZ2 seed=1, 150 gen, pymoo-mode | IGD ≤ 3 × 0.00350 (currently ~1.15×) |
+| DTLZ2 seed=1, 150 gen, pymoo-mode | IGD ≤ 2 × 0.00350. The 0.00350 scalar is the mismatched n_var=10 run. 3× still passed a regression to about 2.9×. This bar does not claim same-problem equivalence. |
 | DTLZ2 short smoke (80 gen) | IGD &lt; 0.15 |
 
 ZDT2 quality A/B is gens=250 + `PymooCompatible` (not the loose smoke bar). ZDT1 / DTLZ2 shipping bars are unchanged.
@@ -88,7 +129,10 @@ ZDT2 quality A/B is gens=250 + `PymooCompatible` (not the loose smoke bar). ZDT1
 | Item | Status |
 |------|--------|
 | IGD mean-distance | **aligned** |
-| ASF / hyperplane normalization | **aligned** |
+| ASF / axis intercepts | **aligned** |
+| Collapsed nadir (span ≤ 1e-6) | **delta**: nadir = ideal + 1 after the worst-of-pop fallback. pymoo 0.6.2 stops at worst-of-pop. Locked by `Collapsed_span_sets_nadir_to_ideal_plus_one` (`{2, 2+1e-8}` → nadir 3). |
+| Infeasible points | **current rule, locked**: ideal and worst include them. Fixture is feasible (1, 1) vs infeasible (0, 0) → ideal (0, 0). No constrained benchmark yet. |
+| Mating re-association | **delta**: after survival, `PrepareForSelection` normalizes the survivors again and overwrites niche ids. pymoo keeps the survival ids. Fixture: `PrepareForSelection_overwrites_survival_niche_ids`. |
 | Persistent ideal + ND extremes | **aligned** |
 | `TournamentMode.PymooCompatible` | **implemented** |
 | Duplicate elimination | **implemented** (default on) |

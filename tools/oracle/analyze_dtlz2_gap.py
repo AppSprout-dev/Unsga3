@@ -64,7 +64,9 @@ def main() -> None:
     from pymoo.util.ref_dirs import get_reference_directions
 
     ref = get_reference_directions("das-dennis", 3, n_partitions=12)
-    pf = get_problem("dtlz2", n_obj=3).pareto_front(ref)
+    # Spherical PF does not depend on k. n_var=12 matches Dtlz2Problem(k=10);
+    # pymoo's default n_var=10 (k=8) is a different search problem, not a different PF.
+    pf = get_problem("dtlz2", n_obj=3, n_var=12).pareto_front(ref)
     print("PF size", len(pf), "refs", len(ref))
 
     for F, lab in [(cs, "cs-pymoo"), (csd, "cs-def"), (py, "pymoo")]:

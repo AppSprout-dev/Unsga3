@@ -31,6 +31,14 @@ OUT = Path(__file__).resolve().parent / "out"
 ORACLE_COMPARE = ROOT / "tools" / "OracleCompare"
 
 
+# C# Dtlz2Problem(k=10) ⇒ n_var = M + k - 1. pymoo's default for M=3 is n_var=10 (k=8).
+DTLZ2_K = 10
+
+
+def dtlz2_n_var(n_obj: int, k: int = DTLZ2_K) -> int:
+    return n_obj + k - 1
+
+
 @dataclass
 class Protocol:
     name: str
@@ -39,6 +47,7 @@ class Protocol:
     gens: int
     n_obj: int
     csharp_pymoo_mode: bool  # True → TournamentMode.PymooCompatible
+    n_var: int | None = None  # DTLZ2 sets 12; None keeps the pymoo problem default
 
 
 PROTOCOLS: dict[str, Protocol] = {
@@ -47,7 +56,17 @@ PROTOCOLS: dict[str, Protocol] = {
     # Optional: csharp_pymoo_mode=False (RankNicheDistance) + gens=100 is the
     # unpublished Wilcoxon ZDT2 mating snapshot — do not treat it as the default.
     "zdt2": Protocol("zdt2", partitions=12, pop=52, gens=250, n_obj=2, csharp_pymoo_mode=True),
-    "dtlz2": Protocol("dtlz2", partitions=12, pop=92, gens=150, n_obj=3, csharp_pymoo_mode=True),
+    # n_var=12 matches C#. The checked-in WILCOXON-RESULTS.md pymoo column is the
+    # older n_var=10 run and must not be regenerated until those seeds are re-run.
+    "dtlz2": Protocol(
+        "dtlz2",
+        partitions=12,
+        pop=92,
+        gens=150,
+        n_obj=3,
+        csharp_pymoo_mode=True,
+        n_var=dtlz2_n_var(3),
+    ),
 }
 
 
@@ -178,7 +197,8 @@ def run_pymoo(proto: Protocol, seed: int) -> float:
     import numpy as np
 
     if proto.name == "dtlz2":
-        problem = get_problem("dtlz2", n_obj=proto.n_obj)
+        n_var = proto.n_var if proto.n_var is not None else dtlz2_n_var(proto.n_obj)
+        problem = get_problem("dtlz2", n_obj=proto.n_obj, n_var=n_var)
         ref_dirs = get_reference_directions(
             "das-dennis", proto.n_obj, n_partitions=proto.partitions
         )
@@ -206,6 +226,7 @@ def run_pymoo(proto: Protocol, seed: int) -> float:
                 "source": "pymoo",
                 "algorithm": "UNSGA3",
                 "problem": proto.name,
+                "n_var": int(problem.n_var),
                 "pop_size": proto.pop,
                 "n_gen": proto.gens,
                 "seed": seed,
@@ -332,8 +353,8 @@ def markdown_report(results: dict) -> str:
         "## Notes",
         "",
         "- Not bit-identical: different RNG implementations and minor operator ordering.",
-        "- Practical equivalence: median IGD within ~1–2× and non-significant MWU is a strong claim; "
-        "significant differences with small effect size (ratio ≈ 1) are still acceptable for a v0.x port.",
+        "- These tests are not a 1–2% equivalence claim. Report the Mann–Whitney result as computed. "
+        "DTLZ2 pymoo runs in this script use n_var=12; a table generated before that change is the n_var=10 column.",
         "- Reproduce: `python tools/oracle/run_multiseed_wilcoxon.py`",
         "",
     ]
@@ -403,6 +424,7 @@ def main() -> int:
                 "partitions": proto.partitions,
                 "pop": proto.pop,
                 "gens": proto.gens,
+                "n_var": proto.n_var,
                 "csharp_pymoo_mode": proto.csharp_pymoo_mode,
             },
             "csharp": summarize(cs_igds),

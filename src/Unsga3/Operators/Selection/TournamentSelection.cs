@@ -5,7 +5,10 @@ using Unsga3.Utilities;
 namespace Unsga3.Operators.Selection;
 
 /// <summary>
-/// U-NSGA-III niching-based binary tournament (Seada &amp; Deb / pymoo variants).
+/// Binary mating tournament. <see cref="TournamentMode.PymooCompatible"/> follows the
+/// Seada &amp; Deb Algorithm 2 split (same niche: rank then distance; different niches: random)
+/// and pymoo's coin flip on equal distance. <see cref="TournamentMode.RankNicheDistance"/>
+/// is the constructor default and also prefers the smaller niche count across niches.
 /// </summary>
 public sealed class TournamentSelection
 {
@@ -17,7 +20,8 @@ public sealed class TournamentSelection
     public TournamentMode Mode { get; }
 
     /// <summary>
-    /// Select <paramref name="count"/> parents (with replacement tournaments) from the population.
+    /// Select <paramref name="count"/> parents by independent tournaments with replacement.
+    /// This is not the paper's two shuffled passes of consecutive pairs.
     /// Population must already have Rank / niche association set via <see cref="PrepareForSelection"/>.
     /// </summary>
     public List<Individual> SelectParents(
@@ -112,7 +116,10 @@ public sealed class TournamentSelection
         return rng.NextDouble() < 0.5 ? a : b;
     }
 
-    /// <summary>Recompute ranks + niche counts for tournament (normalize + associate).</summary>
+    /// <summary>
+    /// Recompute ranks and niche association for mating. This is a second normalization
+    /// of the survivors. pymoo keeps the niche ids from environmental selection.
+    /// </summary>
     public static void PrepareForSelection(
         IReadOnlyList<Individual> population,
         ReferencePointManager references,

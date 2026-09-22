@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
+- DTLZ2 pymoo oracle passes `n_var=12` (k=10) to match `Dtlz2Problem`. The published 15-seed table used pymoo’s default `n_var=10` and is not rewritten. Seed 1 was remeasured at n_var=12.
+- Documented that ZDT IGD compares the C# full non-dominated front with pymoo `res.F`. Added `ReferenceDirectionThinning.OnePerDirection` as a cardinality aid, not a parity claim.
+- Documented the collapsed-nadir fallback (nadir = ideal + 1 when the span stays ≤ 1e-6). pymoo 0.6.2 stops at the worst point in the population. Behavior is unchanged and covered by a unit test.
+- Documented that default `RankNicheDistance` is not Seada and Deb Algorithm 2. `PymooCompatible` matches the paper's same-niche split; p_c stays 1.0 (paper experiments use 0.9). The default tournament is unchanged.
+- Locked the infeasible-point hyperplane rule with a fixture: feasible (1, 1) beside infeasible (0, 0) sets ideal to (0, 0). The rule is unchanged.
+- Documented that mating calls `PrepareForSelection`, which re-associates survivors. pymoo keeps the niche ids from survival. A fixture locks the current ids on a five-point pool.
+- Documented that `WithDasDennis(1, 1)` throws because N must be at least 2. Single-objective runs pass an explicit population size. N = 1 is not accepted.
+- Indicator edges: Euclidean distance rejects a shorter vector instead of ignoring the extra coordinates. IGD+ has a hand-case test. `ParetoFronts.Zdt1(1)` (and the other single-point samplers) throw. ZDT6's 0.280775 floor and ZDT3's 0.1822287280 endpoint are documented and locked.
+- Duplicate elimination no longer spins when mutation cannot change the decision vector. The key is `G12` significant digits, not 12 decimal places. After the attempt cap, remaining offspring slots may be duplicates.
+- Equivalence docs no longer say the published Wilcoxon table is within 1–2% of pymoo. The DTLZ2 seed-1 guard is 2× the published mismatched scalar 0.00350, so a regression to about 2.9× fails. Das–Dennis `Count` uses a checked 64-bit combination and throws when the value does not fit in `int`. Two-layer reference directions remain absent.
 
 ## [0.1.4] — 2026-09-19
 

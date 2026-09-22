@@ -17,7 +17,7 @@ Living plan for Unsga3. Issues track concrete work; this page is the narrative.
 - [ ] Multi-seed Wilcoxon results checked in / refreshed on release  
 - [ ] `net8.0` (+ `net10.0`) multi-target for broader NuGet consumers  
 - [ ] nuget.org publish (in addition to GitHub Packages)  
-- [ ] IGD+ / GD+ indicators  
+- [ ] GD+ indicator (IGD+ has a hand-case test; GD and IGD were already implemented)
 - [ ] Constrained demos (OSY / TNK) with self-tests  
 - [ ] API docs site (DocFX or similar)  
 

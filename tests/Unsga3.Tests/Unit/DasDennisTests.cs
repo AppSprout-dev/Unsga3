@@ -30,6 +30,13 @@ public class DasDennisTests
     }
 
     [Fact]
+    public void Count_throws_when_the_combination_exceeds_int32()
+    {
+        // C(34 + 11 - 1, 10) = C(44, 10) = 2_481_256_778, which does not fit in Int32.
+        Assert.Throws<OverflowException>(() => ReferenceDirections.Count(11, 34));
+    }
+
+    [Fact]
     public void Single_objective_is_unit_scalar()
     {
         var pts = ReferenceDirections.DasDennis(1, 5);

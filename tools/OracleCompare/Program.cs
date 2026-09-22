@@ -8,6 +8,7 @@ using Unsga3.Problems;
 using Unsga3.Utilities;
 
 // Fixed-protocol C# side of the pymoo oracle (see tools/oracle/run_pymoo_oracle.py).
+// IGD is scored on the full feasible non-dominated front. pymoo's script scores res.F.
 //
 //   dotnet run --project tools/OracleCompare -- --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1 --pymoo-mode
 //   # ZDT2 quality protocol (matches unsga3-bend A/B): gens=250 + --pymoo-mode.
@@ -76,7 +77,7 @@ int popSize = pop ?? dirs.Length;
 var mode = pymooMode ? TournamentMode.PymooCompatible : TournamentMode.RankNicheDistance;
 
 Console.WriteLine(
-    $"Unsga3 | problem={problemName} M={m} refs={dirs.Length} pop={popSize} gens={gens} seed={seed} tournament={mode}");
+    $"Unsga3 | problem={problemName} M={m} n_var={problem.NumberOfVariables} refs={dirs.Length} pop={popSize} gens={gens} seed={seed} tournament={mode}");
 
 var algo = new Unsga3Algorithm(dirs, popSize, seed: seed, tournamentMode: mode);
 var result = algo.Run(problem, gens);
@@ -93,6 +94,7 @@ double? hv = m == 2
     ? PerformanceIndicators.Hypervolume2D(obtained, new[] { 1.1, 1.1 })
     : null;
 
+Console.WriteLine($"front=non_dominated n={obtained.Length}");
 Console.WriteLine($"front_size={obtained.Length}");
 Console.WriteLine($"IGD={igd.ToString("G6", CultureInfo.InvariantCulture)}");
 if (hv is double h)
@@ -116,12 +118,14 @@ var meta = new Dictionary<string, object?>
     ["tournament"] = mode.ToString(),
     ["problem"] = problemName,
     ["n_obj"] = m,
+    ["n_var"] = problem.NumberOfVariables,
     ["partitions"] = partitions,
     ["n_ref_dirs"] = dirs.Length,
     ["pop_size"] = popSize,
     ["n_gen"] = gens,
     ["seed"] = seed,
     ["n_solutions"] = obtained.Length,
+    ["front_definition"] = "non_dominated_feasible",
     ["igd"] = igd,
     ["hv2"] = hv,
     ["F_csv"] = Path.GetFileName(fPath),

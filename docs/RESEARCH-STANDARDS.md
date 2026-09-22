@@ -26,27 +26,28 @@ Sources consulted (2026-08):
 Default dimensions (Deb / pymoo convention):
 
 - ZDT1–3: n=30; ZDT4: n=10; ZDT6: n=10  
-- DTLZ: n = M + k − 1 with k=5 (DTLZ1) or k=10 (DTLZ2–4), k=20 (DTLZ7)
+- DTLZ: n = M + k − 1 with k=5 (DTLZ1) or k=10 (DTLZ2–4), k=20 (DTLZ7)  
+- C# `Dtlz2Problem` uses that k=10, so M=3 ⇒ **n_var=12**. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k=8). Oracle runs pass `n_var=12`. The published 15-seed pymoo column is the default-10 run and is not a same-k comparison.
 
 ## 2. Algorithm hyperparameters (match paper + pymoo)
 
 | Knob | Standard value |
 |------|----------------|
-| Crossover | SBX, η_c = **30**, p_c = 1.0 |
+| Crossover | SBX, η_c = **30**, p_c = **1.0** (pymoo). Paper section 4 uses p_c = **0.9** |
 | Mutation | Polynomial, η_m = **20**, p_m = **1/n** |
-| Reference set | **Das–Dennis** (uniform) on unit simplex |
-| Population size | Often = #reference directions (or slightly larger) |
+| Reference set | **Das–Dennis** (uniform) on the unit simplex, **single layer**. Two-layer directions for larger M are absent |
+| Population size | Often = #reference directions (or slightly larger). N ≥ 2. `WithDasDennis(1, 1)` throws because |H| = 1; pass an explicit population size for single-objective runs |
 | Selection | U-NSGA-III **tournament** (not NSGA-III random mating) |
 
 ### Tournament detail (alignment note)
 
-**pymoo** `comp_by_rank_and_ref_line_dist`:
+**Seada & Deb Algorithm 2** (feasible parents): if both are associated with the same reference direction, prefer rank, then perpendicular distance; otherwise pick at random. If either parent is infeasible, use the constraint comparison. On a distance tie the paper keeps the second parent. The mating pool is two shuffled passes of consecutive pairs. Section 4 uses SBX with p_c = 0.9.
 
-1. If either infeasible → smaller CV wins  
-2. Else if **same niche** → better rank, else smaller distance-to-niche  
-3. Else → random  
+**pymoo** `comp_by_rank_and_ref_line_dist` follows that same-niche / different-niche split and coin-flips a distance tie. pymoo `NSGA3` builds `SBX(eta=30, prob=1.0)`.
 
-**This library (v0.1)** prefers rank → niche count → perpendicular distance (Seada-style pressure even across niches). Documented difference for equivalence work; a `PymooCompatibleTournament` mode can be added if bit-identical mating is required.
+**`TournamentMode.PymooCompatible`** matches that pymoo comparator, including the coin flip. It does not use the paper's second-parent tie break, p_c = 0.9, or the consecutive-pair mating pool.
+
+**`TournamentMode.RankNicheDistance`** is the constructor default: rank, then niche count, then perpendicular distance, including when the niches differ. That is a local expansion, not Algorithm 2. The default stays `RankNicheDistance`. ZDT1's published Wilcoxon table uses it.
 
 ## 3. Performance indicators (what to report)
 
@@ -61,8 +62,8 @@ Definitions implemented in `Unsga3.Metrics.PerformanceIndicators` follow **pymoo
 
 ### Reference fronts
 
-- ZDT1/2/4/6: closed form f₂(f₁)  
-- ZDT3: known f₁ intervals  
+- ZDT1/2/4/6: closed form f₂(f₁). `Zdt1(1)` (and the other one-point samplers) throw. ZDT6's sampler starts at the truncated floor 0.280775, slightly below the minimized f1.  
+- ZDT3: known f₁ intervals. The second left endpoint in this library is 0.1822287280; pymoo 0.6.2 writes 0.182228780. The library literal is locked.
 - DTLZ1: Das–Dennis × 0.5 on simplex  
 - DTLZ2/3/4: Das–Dennis projected to unit sphere  
 
@@ -72,7 +73,7 @@ Sample **≥ 500** points on continuous bi-objective fronts (common practice).
 
 Typical ZDT: r = (1.1, 1.1). Always document r; never compare HV across different r.
 
-## 4. Equivalence protocol (one-to-one claim)
+## 4. Equivalence protocol
 
 1. Same problem definition (bounds, n, evaluate)  
 2. Same Das–Dennis partitions → identical ref set size  
@@ -81,8 +82,11 @@ Typical ZDT: r = (1.1, 1.1). Always document r; never compare HV across differen
    - ZDT2 quality A/B: pop=52, **gens=250**, `PymooCompatible` (matches unsga3-bend). gens=100 is an early-stress snapshot, not the quality bar. `RankNicheDistance` is optional, not the ZDT2 default.  
    - DTLZ2: pop=92, **gens=150**, `PymooCompatible`  
 4. Fixed seed **or** 15–31 seeds → median + IQR IGD  
-5. Compare IGD (and HV for M=2) to pymoo `UNSGA3`  
-6. Shipping bar: median IGD within ~1–2% of pymoo on ZDT1/DTLZ2 (or non-inferior Wilcoxon). ZDT2 has no published C# Wilcoxon table; quality budget is 250 gens.
+5. Compare IGD (and HV for M=2) to pymoo `UNSGA3` on the **same front definition**. C# uses the full non-dominated front; pymoo's harness value is `res.F` (the niche optimum). A gap between those two reporters is a set-definition gap until both sides are reduced the same way.
+6. Shipping bar: the published 15-seed table is **not** “median IGD within ~1–2% of pymoo.”
+   ZDT1: Mann–Whitney U = 65, p = 0.0512394, median ratio 0.764107 (pymoo column is `res.F`).
+   DTLZ2: U = 222, p = 6.15164×10⁻⁶, median ratio 1.58638 (pymoo column is n_var=10). That test rejects equal distributions at α = 0.05.
+   ZDT2 has no published C# Wilcoxon table; the quality budget is 250 generations. A matched 15-seed re-run has not replaced the table.
 
 Export path: dump final `F` as CSV from both sides; compute IGD in this library.
 

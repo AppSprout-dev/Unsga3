@@ -95,6 +95,72 @@ public class NormalizationTests
         Assert.Equal(0.1, norm.IdealPoint[1], 9);
     }
 
+    [Fact]
+    public void Collapsed_span_sets_nadir_to_ideal_plus_one()
+    {
+        // {2, 2+1e-8}. Span stays below 1e-6 after the worst-of-population fallback,
+        // so nadir becomes ideal + 1 = 3. pymoo 0.6.2 would keep the 1e-8 span.
+        var norm = new Normalization(1);
+        var pop = new List<Individual> { Make1(2.0), Make1(2.0 + 1e-8) };
+        var normalized = norm.Normalize(pop);
+
+        Assert.Equal(2.0, norm.IdealPoint[0], 12);
+        Assert.Equal(3.0, norm.NadirPoint[0], 12);
+        Assert.Equal(0.0, normalized[0][0], 9);
+        Assert.InRange(normalized[1][0], 1e-9, 1e-7);
+    }
+
+    [Fact]
+    public void Infeasible_origin_sets_ideal_from_the_whole_pool()
+    {
+        // Locks the current rule. Feasible (1,1) vs infeasible (0,0).
+        // Ideal and worst are taken from the whole pool. Constraint-domination
+        // puts only the feasible point on the first front, so the ND extreme
+        // search does not see the origin; the ideal still does.
+        var feasible = new Individual(1, 2, 1);
+        feasible.Objectives[0] = 1;
+        feasible.Objectives[1] = 1;
+        feasible.Constraints[0] = 0;
+        feasible.RefreshConstraintViolation();
+
+        var infeasible = new Individual(1, 2, 1);
+        infeasible.Objectives[0] = 0;
+        infeasible.Objectives[1] = 0;
+        infeasible.Constraints[0] = 1;
+        infeasible.RefreshConstraintViolation();
+
+        Assert.True(feasible.IsFeasible);
+        Assert.False(infeasible.IsFeasible);
+
+        var pop = new List<Individual> { feasible, infeasible };
+        var fronts = NonDominatedSort.Sort(pop);
+        Assert.Equal(new[] { 0 }, fronts[0]);
+
+        var norm = new Normalization(2);
+        var normalized = norm.Normalize(pop, fronts[0]);
+
+        Assert.Equal(0.0, norm.IdealPoint[0], 12);
+        Assert.Equal(0.0, norm.IdealPoint[1], 12);
+        Assert.Equal(1.0, norm.NadirPoint[0], 12);
+        Assert.Equal(1.0, norm.NadirPoint[1], 12);
+        Assert.Equal(1.0, normalized[0][0], 9);
+        Assert.Equal(1.0, normalized[0][1], 9);
+        Assert.Equal(0.0, normalized[1][0], 9);
+        Assert.Equal(0.0, normalized[1][1], 9);
+
+        // Unfiltered ASF scores the infeasible origin ahead of (1,1).
+        double[] ideal = { 0.0, 0.0 };
+        Assert.True(Normalization.Asf(infeasible.Objectives, 0, ideal)
+            < Normalization.Asf(feasible.Objectives, 0, ideal));
+    }
+
+    private static Individual Make1(double a)
+    {
+        var ind = new Individual(1, 1);
+        ind.Objectives[0] = a;
+        return ind;
+    }
+
     private static Individual Make(double a, double b, double c)
     {
         var ind = new Individual(1, 3);
