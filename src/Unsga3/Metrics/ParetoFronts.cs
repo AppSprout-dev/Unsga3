@@ -11,6 +11,9 @@ public static class ParetoFronts
     /// <summary>ZDT1: f2 = 1 - sqrt(f1), f1 ∈ [0,1].</summary>
     public static double[][] Zdt1(int nPoints = 500)
     {
+        if (nPoints < 2)
+            throw new ArgumentOutOfRangeException(nameof(nPoints), "Need at least 2 points.");
+
         var pf = new double[nPoints][];
         for (int i = 0; i < nPoints; i++)
         {
@@ -23,6 +26,9 @@ public static class ParetoFronts
     /// <summary>ZDT2: f2 = 1 - f1².</summary>
     public static double[][] Zdt2(int nPoints = 500)
     {
+        if (nPoints < 2)
+            throw new ArgumentOutOfRangeException(nameof(nPoints), "Need at least 2 points.");
+
         var pf = new double[nPoints][];
         for (int i = 0; i < nPoints; i++)
         {
@@ -37,7 +43,13 @@ public static class ParetoFronts
     /// </summary>
     public static double[][] Zdt3(int pointsPerSegment = 100)
     {
-        // Known f1 intervals for ZDT3 Pareto set (Deb).
+        if (pointsPerSegment < 2)
+            throw new ArgumentOutOfRangeException(nameof(pointsPerSegment), "Need at least 2 points per segment.");
+
+        // Known f1 intervals for the ZDT3 Pareto set.
+        // The second left endpoint is 0.1822287280. pymoo 0.6.2 writes 0.182228780
+        // in zdt.py; the two literals differ at the eighth significant digit.
+        // This value stays as transcribed. MetricsTests locks it.
         double[][] intervals =
         {
             new[] { 0.0, 0.0830015349 },
@@ -63,10 +75,19 @@ public static class ParetoFronts
     /// <summary>ZDT4 same geometry as ZDT1.</summary>
     public static double[][] Zdt4(int nPoints = 500) => Zdt1(nPoints);
 
-    /// <summary>ZDT6: f1 from ~0.280775 to 1, f2 = 1 - f1².</summary>
+    /// <summary>
+    /// ZDT6: f2 = 1 - f1², with f1 sampled from 0.280775 up to 1.
+    /// 0.280775 is a six-digit truncation of the minimized
+    /// f1(x) = 1 - exp(-4x) sin⁶(6πx). A uniform grid of 2,000,001 points on [0, 1]
+    /// found a minimum of 0.280775318847039 (x = 0.081458), which is 3.188×10⁻⁷ above
+    /// this floor, so the first sample sits slightly below the true front.
+    /// </summary>
     public static double[][] Zdt6(int nPoints = 500)
     {
-        // f1* = 1 - exp(-4x) sin^6(6πx) for x in [0,1]; min ≈ 0.280775
+        if (nPoints < 2)
+            throw new ArgumentOutOfRangeException(nameof(nPoints), "Need at least 2 points.");
+
+        // Truncated floor. See the summary comment. MetricsTests locks 0.280775.
         double f1Min = 0.280775;
         var pf = new double[nPoints][];
         for (int i = 0; i < nPoints; i++)

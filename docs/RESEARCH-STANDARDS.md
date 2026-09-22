@@ -62,8 +62,8 @@ Definitions implemented in `Unsga3.Metrics.PerformanceIndicators` follow **pymoo
 
 ### Reference fronts
 
-- ZDT1/2/4/6: closed form f₂(f₁)  
-- ZDT3: known f₁ intervals  
+- ZDT1/2/4/6: closed form f₂(f₁). `Zdt1(1)` (and the other one-point samplers) throw. ZDT6's sampler starts at the truncated floor 0.280775, slightly below the minimized f1.  
+- ZDT3: known f₁ intervals. The second left endpoint in this library is 0.1822287280; pymoo 0.6.2 writes 0.182228780. The library literal is locked.
 - DTLZ1: Das–Dennis × 0.5 on simplex  
 - DTLZ2/3/4: Das–Dennis projected to unit sphere  
 

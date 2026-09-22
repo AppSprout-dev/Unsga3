@@ -116,6 +116,9 @@ public static class PerformanceIndicators
 
     private static double ModifiedDistance(double[] a, double[] z)
     {
+        if (a.Length != z.Length)
+            throw new ArgumentException("Objective vectors must have the same length.");
+
         // d+ from z toward a for minimization: Euclidean of max(a_j - z_j, 0)
         double s = 0;
         for (int k = 0; k < z.Length; k++)
@@ -140,8 +143,11 @@ public static class PerformanceIndicators
 
     private static double Euclidean(double[] a, double[] b)
     {
+        if (a.Length != b.Length)
+            throw new ArgumentException("Objective vectors must have the same length.");
+
         double s = 0;
-        int n = Math.Min(a.Length, b.Length);
+        int n = a.Length;
         for (int i = 0; i < n; i++)
         {
             double d = a[i] - b[i];
