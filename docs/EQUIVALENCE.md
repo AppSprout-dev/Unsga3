@@ -65,6 +65,7 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Tournament (`PymooCompatible`) | same niche → rank then dist; else random; distance tie is a coin flip | `comp_by_rank_and_ref_line_dist` (paper keeps the second parent on a distance tie) |
 | SBX p_c | **1.0** (pymoo `SBX(prob=1.0)`) | paper section 4 uses **0.9** |
 | Mating pool | N independent tournaments with replacement | two shuffled consecutive-pair passes |
+| Niche ids at mating | `PrepareForSelection` re-normalizes survivors and re-associates | ids written during survival are kept |
 | Duplicate elimination | default **on** | `eliminate_duplicates=True` |
 | Survival RNG | optional RNG niche pick | random among equal niches |
 | IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |

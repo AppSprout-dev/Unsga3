@@ -146,6 +146,8 @@ public sealed class Unsga3Algorithm
             var next = survival.Select(combined, _populationSize, rng);
 
             population = new Population(next);
+            // pymoo keeps the niche ids written during survival. This call normalizes the
+            // survivors again and overwrites AssociatedReference before the next mating.
             TournamentSelection.PrepareForSelection(population.Members, refs, normalization);
             generation++;
         }

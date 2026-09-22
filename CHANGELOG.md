@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Documented the collapsed-nadir fallback (nadir = ideal + 1 when the span stays ≤ 1e-6). pymoo 0.6.2 stops at the worst point in the population. Behavior is unchanged and covered by a unit test.
 - Documented that default `RankNicheDistance` is not Seada and Deb Algorithm 2. `PymooCompatible` matches the paper's same-niche split; p_c stays 1.0 (paper experiments use 0.9). The default tournament is unchanged.
 - Locked the infeasible-point hyperplane rule with a fixture: feasible (1, 1) beside infeasible (0, 0) sets ideal to (0, 0). The rule is unchanged.
+- Documented that mating calls `PrepareForSelection`, which re-associates survivors. pymoo keeps the niche ids from survival. A fixture locks the current ids on a five-point pool.
 
 ## [0.1.4] — 2026-09-19
 

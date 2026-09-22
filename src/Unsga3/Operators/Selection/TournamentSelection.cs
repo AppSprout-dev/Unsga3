@@ -116,7 +116,10 @@ public sealed class TournamentSelection
         return rng.NextDouble() < 0.5 ? a : b;
     }
 
-    /// <summary>Recompute ranks + niche counts for tournament (normalize + associate).</summary>
+    /// <summary>
+    /// Recompute ranks and niche association for mating. This is a second normalization
+    /// of the survivors. pymoo keeps the niche ids from environmental selection.
+    /// </summary>
     public static void PrepareForSelection(
         IReadOnlyList<Individual> population,
         ReferencePointManager references,
