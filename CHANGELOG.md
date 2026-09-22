@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Documented that mating calls `PrepareForSelection`, which re-associates survivors. pymoo keeps the niche ids from survival. A fixture locks the current ids on a five-point pool.
 - Documented that `WithDasDennis(1, 1)` throws because N must be at least 2. Single-objective runs pass an explicit population size. N = 1 is not accepted.
 - Indicator edges: Euclidean distance rejects a shorter vector instead of ignoring the extra coordinates. IGD+ has a hand-case test. `ParetoFronts.Zdt1(1)` (and the other single-point samplers) throw. ZDT6's 0.280775 floor and ZDT3's 0.1822287280 endpoint are documented and locked.
+- Duplicate elimination no longer spins when mutation cannot change the decision vector. The key is `G12` significant digits, not 12 decimal places. After the attempt cap, remaining offspring slots may be duplicates.
 
 ## [0.1.4] — 2026-09-19
 

@@ -67,7 +67,7 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Mating pool | N independent tournaments with replacement | two shuffled consecutive-pair passes |
 | Niche ids at mating | `PrepareForSelection` re-normalizes survivors and re-associates | ids written during survival are kept |
 | `WithDasDennis(1, 1)` | throws. One objective has a single direction, and N must be ≥ 2 | pass `populationSize` ≥ 2 for the single-objective degeneration |
-| Duplicate elimination | default **on** | `eliminate_duplicates=True` |
+| Duplicate elimination | default **on**. Key is `G12` (12 significant digits), not 12 decimal places. Attempts are capped when mutation cannot produce a new key; remaining slots may be duplicates | `eliminate_duplicates=True` |
 | Survival RNG | optional RNG niche pick | random among equal niches |
 | IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |
 | Scored set | full non-dominated front | `res.F` niche optimum |

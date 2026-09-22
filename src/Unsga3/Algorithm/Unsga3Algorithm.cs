@@ -36,7 +36,10 @@ public sealed class Unsga3Algorithm
     /// <param name="tournamentMode">Mating tournament policy; use <see cref="TournamentMode.PymooCompatible"/> for oracle runs.</param>
     /// <param name="eliminateDuplicates">
     /// Drop offspring whose decision vector matches an existing parent or earlier offspring
-    /// (pymoo <c>eliminate_duplicates=True</c>). Default true.
+    /// (pymoo <c>eliminate_duplicates=True</c>). Default true. The key is <c>G12</c>
+    /// (12 significant digits), not 12 digits after the decimal. If mutation cannot
+    /// produce a new key, attempts are capped and the remaining slots may be duplicates
+    /// so the loop cannot hang.
     /// </param>
     public Unsga3Algorithm(
         double[][] referenceDirections,
@@ -196,14 +199,25 @@ public sealed class Unsga3Algorithm
                 TryAddOffspring(offspring, c2, seen);
         }
 
-        // Fallback: mutated clones if de-dup exhausted attempts (should be rare).
+        // Mutation that cannot change x used to spin here: a duplicate was accepted
+        // only when one slot remained, and nothing incremented when two or more remained.
+        int fallbackAttempts = 0;
+        int fallbackCap = Math.Max(_populationSize * 20, 1);
+        while (offspring.Count < _populationSize && fallbackAttempts < fallbackCap)
+        {
+            fallbackAttempts++;
+            var extra = parents[rng.Next(parents.Count)].Clone();
+            _mutation.Mutate(extra, problem, rng, mutProb);
+            if (seen is null || seen.Add(DecisionKey(extra.Variables)))
+                offspring.Add(extra);
+        }
+
+        // Last resort: accept duplicates so elimination cannot hang.
         while (offspring.Count < _populationSize)
         {
             var extra = parents[rng.Next(parents.Count)].Clone();
             _mutation.Mutate(extra, problem, rng, mutProb);
-            // Always accept in the hard-fallback path so we never deadlock.
-            if (seen is null || seen.Add(DecisionKey(extra.Variables)) || offspring.Count + 1 >= _populationSize)
-                offspring.Add(extra);
+            offspring.Add(extra);
         }
 
         return offspring;
@@ -220,10 +234,12 @@ public sealed class Unsga3Algorithm
             offspring.Add(child);
     }
 
-    /// <summary>Stable decision-vector key for duplicate elimination (rounded to 12 dp).</summary>
-    private static string DecisionKey(double[] x)
+    /// <summary>
+    /// Decision-vector key for duplicate elimination. <c>G12</c> is 12 significant digits,
+    /// not 12 digits after the decimal point.
+    /// </summary>
+    internal static string DecisionKey(double[] x)
     {
-        // Invariant culture, fixed decimals — enough for continuous SBX without false collisions.
         var sb = new System.Text.StringBuilder(x.Length * 18);
         for (int i = 0; i < x.Length; i++)
         {
