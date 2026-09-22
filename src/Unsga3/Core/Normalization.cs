@@ -4,10 +4,18 @@ namespace Unsga3.Core;
 
 /// <summary>
 /// NSGA-III adaptive hyperplane normalization (Deb &amp; Jain), aligned with pymoo
-/// <c>HyperplaneNormalization</c>:
+/// <c>HyperplaneNormalization</c> on the intercept path:
 /// persistent ideal / worst points, ASF extreme points (optionally from the ND front),
 /// intercept-based nadir with front/population fallbacks.
 /// </summary>
+/// <remarks>
+/// Collapsed span is a known delta versus pymoo 0.6.2. Both sides fall back to the
+/// worst point in the population when the nadir span is at most 1e-6. If that span
+/// is still at most 1e-6, this library sets nadir = ideal + 1. pymoo stops at the
+/// worst-of-population, so two nearly equal objectives stay a tiny span apart and
+/// normalize to 0 and 1. Here they normalize to about 0 and 1e-8. See
+/// <c>NormalizationTests.Collapsed_span_sets_nadir_to_ideal_plus_one</c>.
+/// </remarks>
 public sealed class Normalization
 {
     private readonly int _m;
@@ -197,7 +205,8 @@ public sealed class Normalization
                 _nadir[j] = worstOfFront[j];
         }
 
-        // Degenerate range → fall back to worst of population.
+        // Degenerate range → worst of this population, then ideal+1.
+        // pymoo 0.6.2 stops after the worst-of-population assignment.
         for (int j = 0; j < _m; j++)
         {
             if (_nadir[j] - _ideal[j] <= 1e-6)

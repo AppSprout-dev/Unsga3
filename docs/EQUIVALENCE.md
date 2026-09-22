@@ -68,6 +68,7 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |
 | Scored set | full non-dominated front | `res.F` niche optimum |
 | Hyperplane norm | persistent ideal, ND extremes, correct ASF | `HyperplaneNormalization` |
+| Collapsed nadir | if the span is still ≤ 1e-6, nadir = ideal + 1 | stop at worst-of-population |
 
 ## DTLZ2 gap history
 

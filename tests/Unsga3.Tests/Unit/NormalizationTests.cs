@@ -95,6 +95,28 @@ public class NormalizationTests
         Assert.Equal(0.1, norm.IdealPoint[1], 9);
     }
 
+    [Fact]
+    public void Collapsed_span_sets_nadir_to_ideal_plus_one()
+    {
+        // {2, 2+1e-8}. Span stays below 1e-6 after the worst-of-population fallback,
+        // so nadir becomes ideal + 1 = 3. pymoo 0.6.2 would keep the 1e-8 span.
+        var norm = new Normalization(1);
+        var pop = new List<Individual> { Make1(2.0), Make1(2.0 + 1e-8) };
+        var normalized = norm.Normalize(pop);
+
+        Assert.Equal(2.0, norm.IdealPoint[0], 12);
+        Assert.Equal(3.0, norm.NadirPoint[0], 12);
+        Assert.Equal(0.0, normalized[0][0], 9);
+        Assert.InRange(normalized[1][0], 1e-9, 1e-7);
+    }
+
+    private static Individual Make1(double a)
+    {
+        var ind = new Individual(1, 1);
+        ind.Objectives[0] = a;
+        return ind;
+    }
+
     private static Individual Make(double a, double b, double c)
     {
         var ind = new Individual(1, 3);
