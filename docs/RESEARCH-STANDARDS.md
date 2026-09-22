@@ -33,7 +33,7 @@ Default dimensions (Deb / pymoo convention):
 
 | Knob | Standard value |
 |------|----------------|
-| Crossover | SBX, η_c = **30**, p_c = 1.0 |
+| Crossover | SBX, η_c = **30**, p_c = **1.0** (pymoo). Paper section 4 uses p_c = **0.9** |
 | Mutation | Polynomial, η_m = **20**, p_m = **1/n** |
 | Reference set | **Das–Dennis** (uniform) on unit simplex |
 | Population size | Often = #reference directions (or slightly larger) |
@@ -41,13 +41,13 @@ Default dimensions (Deb / pymoo convention):
 
 ### Tournament detail (alignment note)
 
-**pymoo** `comp_by_rank_and_ref_line_dist`:
+**Seada & Deb Algorithm 2** (feasible parents): if both are associated with the same reference direction, prefer rank, then perpendicular distance; otherwise pick at random. If either parent is infeasible, use the constraint comparison. On a distance tie the paper keeps the second parent. The mating pool is two shuffled passes of consecutive pairs. Section 4 uses SBX with p_c = 0.9.
 
-1. If either infeasible → smaller CV wins  
-2. Else if **same niche** → better rank, else smaller distance-to-niche  
-3. Else → random  
+**pymoo** `comp_by_rank_and_ref_line_dist` follows that same-niche / different-niche split and coin-flips a distance tie. pymoo `NSGA3` builds `SBX(eta=30, prob=1.0)`.
 
-**This library (v0.1)** prefers rank → niche count → perpendicular distance (Seada-style pressure even across niches). Documented difference for equivalence work; a `PymooCompatibleTournament` mode can be added if bit-identical mating is required.
+**`TournamentMode.PymooCompatible`** matches that pymoo comparator, including the coin flip. It does not use the paper's second-parent tie break, p_c = 0.9, or the consecutive-pair mating pool.
+
+**`TournamentMode.RankNicheDistance`** is the constructor default: rank, then niche count, then perpendicular distance, including when the niches differ. That is a local expansion, not Algorithm 2. The default stays `RankNicheDistance`. ZDT1's published Wilcoxon table uses it.
 
 ## 3. Performance indicators (what to report)
 

@@ -27,7 +27,10 @@ public sealed class Unsga3Algorithm
     /// <param name="populationSize">Defaults to the number of reference directions.</param>
     /// <param name="crossover">Defaults to SBX η=30.</param>
     /// <param name="mutation">Defaults to polynomial mutation η=20.</param>
-    /// <param name="crossoverProbability">Probability of applying SBX to a parent pair.</param>
+    /// <param name="crossoverProbability">
+    /// Probability of applying SBX to a parent pair. Default 1.0, matching pymoo
+    /// <c>SBX(prob=1.0)</c>. Seada &amp; Deb section 4 uses 0.9.
+    /// </param>
     /// <param name="mutationProbability">Per-variable mutation probability; default 1/nVars at run time.</param>
     /// <param name="seed">Optional RNG seed for reproducibility.</param>
     /// <param name="tournamentMode">Mating tournament policy; use <see cref="TournamentMode.PymooCompatible"/> for oracle runs.</param>

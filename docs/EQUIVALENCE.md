@@ -1,6 +1,6 @@
 # Equivalence vs pymoo / MATLAB
 
-Goal: prove this port is a faithful U-NSGA-III (Seada & Deb 2016), not a look-alike.
+Goal: state where this port follows Seada & Deb 2016 and pymoo, and where it does not. Survival, Das–Dennis directions, and the SBX/PM shapes are the pymoo-shaped core. The default tournament is not Algorithm 2.
 
 See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature + pymoo protocol,
 **[ORACLE-RESULTS.md](ORACLE-RESULTS.md)** for single-seed numbers, and
@@ -61,8 +61,10 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 
 | Item | This library | pymoo |
 |------|--------------|-------|
-| Tournament (default) | rank → niche count → dist | — |
-| Tournament (`PymooCompatible`) | same niche → rank/dist; else random | `comp_by_rank_and_ref_line_dist` |
+| Tournament (default `RankNicheDistance`) | rank → niche count → dist, including across niches | not Algorithm 2 |
+| Tournament (`PymooCompatible`) | same niche → rank then dist; else random; distance tie is a coin flip | `comp_by_rank_and_ref_line_dist` (paper keeps the second parent on a distance tie) |
+| SBX p_c | **1.0** (pymoo `SBX(prob=1.0)`) | paper section 4 uses **0.9** |
+| Mating pool | N independent tournaments with replacement | two shuffled consecutive-pair passes |
 | Duplicate elimination | default **on** | `eliminate_duplicates=True` |
 | Survival RNG | optional RNG niche pick | random among equal niches |
 | IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |

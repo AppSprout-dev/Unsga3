@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - DTLZ2 pymoo oracle passes `n_var=12` (k=10) to match `Dtlz2Problem`. The published 15-seed table used pymoo’s default `n_var=10` and is not rewritten. Seed 1 was remeasured at n_var=12.
 - Documented that ZDT IGD compares the C# full non-dominated front with pymoo `res.F`. Added `ReferenceDirectionThinning.OnePerDirection` as a cardinality aid, not a parity claim.
 - Documented the collapsed-nadir fallback (nadir = ideal + 1 when the span stays ≤ 1e-6). pymoo 0.6.2 stops at the worst point in the population. Behavior is unchanged and covered by a unit test.
+- Documented that default `RankNicheDistance` is not Seada and Deb Algorithm 2. `PymooCompatible` matches the paper's same-niche split; p_c stays 1.0 (paper experiments use 0.9). The default tournament is unchanged.
 
 ## [0.1.4] — 2026-09-19
 
