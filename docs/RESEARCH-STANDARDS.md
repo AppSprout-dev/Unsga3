@@ -26,7 +26,8 @@ Sources consulted (2026-08):
 Default dimensions (Deb / pymoo convention):
 
 - ZDT1–3: n=30; ZDT4: n=10; ZDT6: n=10  
-- DTLZ: n = M + k − 1 with k=5 (DTLZ1) or k=10 (DTLZ2–4), k=20 (DTLZ7)
+- DTLZ: n = M + k − 1 with k=5 (DTLZ1) or k=10 (DTLZ2–4), k=20 (DTLZ7)  
+- C# `Dtlz2Problem` uses that k=10, so M=3 ⇒ **n_var=12**. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k=8). Oracle runs pass `n_var=12`. The published 15-seed pymoo column is the default-10 run and is not a same-k comparison.
 
 ## 2. Algorithm hyperparameters (match paper + pymoo)
 

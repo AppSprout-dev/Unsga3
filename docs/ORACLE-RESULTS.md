@@ -22,6 +22,8 @@ pip install pymoo
 python tools/oracle/run_pymoo_oracle.py --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
 python tools/oracle/run_pymoo_oracle.py --problem zdt2 --partitions 12 --pop 52 --seed 1
 python tools/oracle/run_pymoo_oracle.py --problem dtlz2 --partitions 12 --pop 92 --gens 150 --seed 1
+# DTLZ2 default is n_var=12 (k=10), matching Dtlz2Problem. pymoo's own default is n_var=10 (k=8).
+# Pass --n-var 10 only to reproduce the historical mismatched column.
 
 # C#
 dotnet run --project tools/OracleCompare -c Release -- --problem zdt1 --partitions 12 --pop 52 --gens 100 --seed 1
@@ -40,7 +42,7 @@ C# never published a hard ZDT2 oracle / Wilcoxon table. The unpublished Wilcoxon
 | Problem | Settings | pymoo IGD | C# default IGD | C# `PymooCompatible` IGD | Verdict |
 |---------|----------|-----------|----------------|--------------------------|---------|
 | **ZDT1** | p=12, pop=52, 100 gen | **0.0629** (n=13 ND) | **0.0514** (n=52) | — | **Default wins** |
-| **DTLZ2** | p=12, pop=92, 150 gen | **0.00350** (n=91) | 0.0070 (n=92) | **0.00403** (n=92) | **~1.15× pymoo** (pymoo-mode) |
+| **DTLZ2** | p=12, pop=92, 150 gen, **mismatched k** | **0.00350** (n=91, pymoo **n_var=10**, k=8) | 0.0070 (n=92, n_var=12) | **0.00403** (n=92, n_var=12) | Historical pair only. Not a same-problem ratio. |
 
 ### DTLZ2 multi-seed (C# `PymooCompatible`, same protocol)
 
@@ -53,7 +55,27 @@ C# never published a hard ZDT2 oracle / Wilcoxon table. The unpublished Wilcoxon
 | 5 | 0.00466 |
 | **mean** | **~0.00485** |
 
-All seeds stay in the same band as pymoo’s single-seed 0.0035 (within ~1.4–1.6×).
+Those five C# seeds are `Dtlz2Problem(k: 10)` (n_var=12). The 0.0035 figure they were compared with is pymoo at **n_var=10** (k=8). That is not a same-problem band. The 15-seed file is unchanged until a matched re-run (see below).
+
+### DTLZ2 n_var (known mismatch, seed 1 remeasured)
+
+`Dtlz2Problem(nObjectives: 3, k: 10)` builds **n = 12**. Deb et al. suggest k = 10. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k = 8). The harness used to omit `n_var`, so the published seed-1 pair and `docs/WILCOXON-RESULTS.md` compare those two dimensions. `tools/oracle/run_pymoo_oracle.py` now passes **n_var=12**.
+
+Published mismatched seed 1 (already in the Wilcoxon table; not re-interpreted as parity):
+
+| Solver | n_var | k | IGD |
+|--------|------:|--:|----:|
+| C# `PymooCompatible` | 12 | 10 | 0.00403168 |
+| pymoo default | 10 | 8 | 0.00349879 |
+
+Seed 1 remeasured **2026-09-22** with pymoo 0.6.2 after the oracle passes `n_var=12`. Console figures are the `G6` print; the second number is the meta-file value. Front sizes are what each reporter wrote (`res.F` vs full non-dominated front).
+
+| Solver | n_var | k | Console IGD | Meta IGD | Front |
+|--------|------:|--:|------------:|---------:|------:|
+| C# `PymooCompatible` | 12 | 10 | 0.00403168 | 0.004031675764658275 | 92 |
+| pymoo `n_var=12` | 12 | 10 | 0.00308392 | 0.003083921253245871 | 91 |
+
+Ratio of the two meta IGDs: 0.004031675764658275 / 0.003083921253245871 = **1.30732**. That is one seed, and the fronts still differ by one point (92 vs 91). It is not a 15-seed ranking and it does not replace the Wilcoxon table.
 
 ## Root cause of the old ~5× DTLZ2 gap (fixed)
 

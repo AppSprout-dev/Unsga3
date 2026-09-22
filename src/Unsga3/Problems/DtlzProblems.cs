@@ -57,7 +57,12 @@ public sealed class Dtlz1Problem : ProblemBase
     }
 }
 
-/// <summary>DTLZ2 — unit sphere (first orthant).</summary>
+/// <summary>
+/// DTLZ2 — unit sphere (first orthant).
+/// Default <c>k = 10</c> gives <c>n = M + k − 1</c> (12 when M = 3), Deb's suggested k.
+/// pymoo <c>get_problem("dtlz2", n_obj=3)</c> defaults to <c>n_var = 10</c> (k = 8).
+/// That default is a different search problem. The oracle passes <c>n_var = 12</c>.
+/// </summary>
 public sealed class Dtlz2Problem : ProblemBase
 {
     public Dtlz2Problem(int nObjectives = 3, int k = 10)

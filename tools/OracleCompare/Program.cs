@@ -76,7 +76,7 @@ int popSize = pop ?? dirs.Length;
 var mode = pymooMode ? TournamentMode.PymooCompatible : TournamentMode.RankNicheDistance;
 
 Console.WriteLine(
-    $"Unsga3 | problem={problemName} M={m} refs={dirs.Length} pop={popSize} gens={gens} seed={seed} tournament={mode}");
+    $"Unsga3 | problem={problemName} M={m} n_var={problem.NumberOfVariables} refs={dirs.Length} pop={popSize} gens={gens} seed={seed} tournament={mode}");
 
 var algo = new Unsga3Algorithm(dirs, popSize, seed: seed, tournamentMode: mode);
 var result = algo.Run(problem, gens);
@@ -116,6 +116,7 @@ var meta = new Dictionary<string, object?>
     ["tournament"] = mode.ToString(),
     ["problem"] = problemName,
     ["n_obj"] = m,
+    ["n_var"] = problem.NumberOfVariables,
     ["partitions"] = partitions,
     ["n_ref_dirs"] = dirs.Length,
     ["pop_size"] = popSize,

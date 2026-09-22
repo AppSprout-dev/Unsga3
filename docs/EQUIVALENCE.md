@@ -17,10 +17,11 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
 
 1. **Fixed operators:** SBX η=30, PM η=20, p_c=1.0, p_m=1/n, p_var(SBX)=0.5  
 2. **Same reference set:** Das–Dennis partitions identical to the oracle  
-3. **Same pop size / generations / seed** (or 15–31 seeds for statistics)  
-4. **Metrics:** IGD (primary), IGD+, HV (M=2, document ref point), front plots for M≤3  
-5. **Tolerance:** median IGD within ~1–2× of pymoo on ZDT/DTLZ is the practical bar.
-   15-seed: ZDT1 median **better** than pymoo (ratio 0.76, MWU n.s.); DTLZ2 median ~**1.6×** (pymoo still ahead).
+3. **Same decision dimension:** DTLZ2 uses k=10 so `n_var = M + k − 1` (12 when M=3). pymoo’s default `n_var=10` (k=8) is a known mismatch; the oracle passes `n_var=12`.  
+4. **Same pop size / generations / seed** (or 15–31 seeds for statistics)  
+5. **Metrics:** IGD (primary), IGD+, HV (M=2, document ref point), front plots for M≤3  
+6. **Tolerance:** median IGD within ~1–2× of pymoo on ZDT/DTLZ is the practical bar.
+   15-seed: ZDT1 median ratio 0.76 (MWU n.s.); DTLZ2 median ~**1.6×** on the published table, whose pymoo column is **n_var=10** while C# is n_var=12.
 
 Published A/B budgets (ZDT1 / DTLZ2 unchanged; ZDT2 matches unsga3-bend protocol honesty):
 
@@ -72,4 +73,6 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 |-------|-------------------|-----------------|
 | Pre-fix (wrong ASF) | 0.017 | ~5× |
 | ASF + persistent ideal | 0.0052 | ~1.5× |
-| + duplicate elimination | **0.0040** | **~1.15×** |
+| + duplicate elimination | **0.0040** | **~1.15× vs pymoo n_var=10** |
+
+The ~1.15× denominator is pymoo at **n_var=10** (k=8), not the C# problem (n_var=12, k=10). A matched seed-1 pair is recorded in [ORACLE-RESULTS.md](ORACLE-RESULTS.md). The 15-seed table is still the mismatched-k run.

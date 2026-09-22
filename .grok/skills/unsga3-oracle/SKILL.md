@@ -19,6 +19,8 @@ Repo root: Unsga3. Confirm `Unsga3.slnx` / `tools/OracleCompare` exist before ru
 | zdt2 | 12 | 52 | **250** | `--pymoo-mode` (`PymooCompatible`) |
 | dtlz2 | 12 | 92 | 150 | `--pymoo-mode` (`PymooCompatible`) |
 
+DTLZ2: C# `Dtlz2Problem(k: 10)` ⇒ **n_var=12**. `run_pymoo_oracle.py` passes `n_var=12`. pymoo’s own default is n_var=10 (k=8). Do not treat the published 15-seed pymoo column as that matched run, and do not rewrite `docs/WILCOXON-RESULTS.md` until the seeds are re-run.
+
 ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo), not the quality bar. Quality protocol matches unsga3-bend A/B (gens=250, PymooCompatible). `RankNicheDistance` is an optional unpublished Wilcoxon ZDT2 mating mode — do not silently switch all ZDT defaults to it. ZDT1 and DTLZ2 unchanged.
 
 IGD = **mean** nearest Euclidean distance (pymoo-compatible). Docs: `docs/EQUIVALENCE.md`, `docs/RESEARCH-STANDARDS.md`.
