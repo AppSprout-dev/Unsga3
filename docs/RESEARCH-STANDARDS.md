@@ -36,7 +36,7 @@ Default dimensions (Deb / pymoo convention):
 | Crossover | SBX, η_c = **30**, p_c = **1.0** (pymoo). Paper section 4 uses p_c = **0.9** |
 | Mutation | Polynomial, η_m = **20**, p_m = **1/n** |
 | Reference set | **Das–Dennis** (uniform) on unit simplex |
-| Population size | Often = #reference directions (or slightly larger) |
+| Population size | Often = #reference directions (or slightly larger). N ≥ 2. `WithDasDennis(1, 1)` throws because |H| = 1; pass an explicit population size for single-objective runs |
 | Selection | U-NSGA-III **tournament** (not NSGA-III random mating) |
 
 ### Tournament detail (alignment note)

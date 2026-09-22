@@ -69,7 +69,13 @@ public sealed class Unsga3Algorithm
         _eliminateDuplicates = eliminateDuplicates;
     }
 
-    /// <summary>Convenience: build Das–Dennis directions then construct the algorithm.</summary>
+    /// <summary>
+    /// Convenience: build Das–Dennis directions then construct the algorithm.
+    /// One objective produces a single direction, so the default population size is 1.
+    /// The constructor requires N ≥ 2, and <c>WithDasDennis(1, 1)</c> throws.
+    /// Single-objective runs must pass <paramref name="populationSize"/> ≥ 2
+    /// (Seada &amp; Deb recommend a multiple of four, and at least |H|).
+    /// </summary>
     public static Unsga3Algorithm WithDasDennis(
         int numberOfObjectives,
         int partitions,
