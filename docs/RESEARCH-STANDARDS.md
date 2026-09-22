@@ -82,7 +82,7 @@ Typical ZDT: r = (1.1, 1.1). Always document r; never compare HV across differen
    - ZDT2 quality A/B: pop=52, **gens=250**, `PymooCompatible` (matches unsga3-bend). gens=100 is an early-stress snapshot, not the quality bar. `RankNicheDistance` is optional, not the ZDT2 default.  
    - DTLZ2: pop=92, **gens=150**, `PymooCompatible`  
 4. Fixed seed **or** 15–31 seeds → median + IQR IGD  
-5. Compare IGD (and HV for M=2) to pymoo `UNSGA3`  
+5. Compare IGD (and HV for M=2) to pymoo `UNSGA3` on the **same front definition**. C# uses the full non-dominated front; pymoo's harness value is `res.F` (the niche optimum). A gap between those two reporters is a set-definition gap until both sides are reduced the same way.
 6. Shipping bar: median IGD within ~1–2% of pymoo on ZDT1/DTLZ2 (or non-inferior Wilcoxon). ZDT2 has no published C# Wilcoxon table; quality budget is 250 gens.
 
 Export path: dump final `F` as CSV from both sides; compute IGD in this library.

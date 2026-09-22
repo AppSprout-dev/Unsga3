@@ -19,7 +19,8 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
 2. **Same reference set:** Das–Dennis partitions identical to the oracle  
 3. **Same decision dimension:** DTLZ2 uses k=10 so `n_var = M + k − 1` (12 when M=3). pymoo’s default `n_var=10` (k=8) is a known mismatch; the oracle passes `n_var=12`.  
 4. **Same pop size / generations / seed** (or 15–31 seeds for statistics)  
-5. **Metrics:** IGD (primary), IGD+, HV (M=2, document ref point), front plots for M≤3  
+5. **Metrics:** IGD (primary), IGD+, HV (M=2, document ref point), front plots for M≤3.
+   Score the **same front definition** and the **same reference set**. C# reports the full non-dominated front. pymoo `res.F` is the survival niche set (about one point per filled direction). `ReferenceDirectionThinning.OnePerDirection` can match cardinality; it does not reproduce `res.F` and is not a parity claim.
 6. **Tolerance:** median IGD within ~1–2× of pymoo on ZDT/DTLZ is the practical bar.
    15-seed: ZDT1 median ratio 0.76 (MWU n.s.); DTLZ2 median ~**1.6×** on the published table, whose pymoo column is **n_var=10** while C# is n_var=12.
 
@@ -65,6 +66,7 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Duplicate elimination | default **on** | `eliminate_duplicates=True` |
 | Survival RNG | optional RNG niche pick | random among equal niches |
 | IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |
+| Scored set | full non-dominated front | `res.F` niche optimum |
 | Hyperplane norm | persistent ideal, ND extremes, correct ASF | `HyperplaneNormalization` |
 
 ## DTLZ2 gap history

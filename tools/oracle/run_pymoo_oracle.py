@@ -6,6 +6,11 @@ Fixed protocol (docs/EQUIVALENCE.md + RESEARCH-STANDARDS.md):
   SBX η=30, PM η=20 (pymoo defaults for NSGA3/UNSGA3),
   Das-Dennis refs, seed=1, export final F + IGD.
 
+The exported front is pymoo res.F (the survival niche set, about one point per
+filled reference direction). It is not the final population's full non-dominated
+front. C# OracleCompare scores that full front. Compare those files only after
+putting both sides on the same front definition and the same reference set.
+
 DTLZ2 decision dimension: C# Dtlz2Problem(k=10) uses n_var = M + k - 1 = 12.
 pymoo get_problem("dtlz2", n_obj=3) defaults to n_var=10 (k=8). This script
 passes n_var=12 unless --n-var is set. --n-var 10 reproduces the historical
@@ -139,11 +144,13 @@ def main() -> int:
         "n_gen": gens,
         "seed": args.seed,
         "n_solutions": int(F.shape[0]),
+        "front_definition": "res.F",
         "igd": igd,
         "F_csv": str(f_path.name),
     }
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
+    print(f"front=res.F n={int(F.shape[0])} (survival optimum, not the full population ND front)")
     print(f"IGD={igd:.6g}")
     print(f"wrote {f_path}")
     print(f"wrote {meta_path}")

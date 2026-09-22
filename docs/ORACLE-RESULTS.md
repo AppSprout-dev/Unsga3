@@ -41,8 +41,27 @@ C# never published a hard ZDT2 oracle / Wilcoxon table. The unpublished Wilcoxon
 
 | Problem | Settings | pymoo IGD | C# default IGD | C# `PymooCompatible` IGD | Verdict |
 |---------|----------|-----------|----------------|--------------------------|---------|
-| **ZDT1** | p=12, pop=52, 100 gen | **0.0629** (n=13 ND) | **0.0514** (n=52) | — | **Default wins** |
+| **ZDT1** | p=12, pop=52, 100 gen | **0.0629** (`res.F`, n=13) | **0.0514** (full ND front, n=52) | — | Different sets. Not an algorithm ranking. |
 | **DTLZ2** | p=12, pop=92, 150 gen, **mismatched k** | **0.00350** (n=91, pymoo **n_var=10**, k=8) | 0.0070 (n=92, n_var=12) | **0.00403** (n=92, n_var=12) | Historical pair only. Not a same-problem ratio. |
+
+### ZDT fronts (same run, different sets)
+
+C# `OracleCompare` scores the **full feasible non-dominated front** (here n=52) against `ParetoFronts.Zdt1(500)`. pymoo's oracle scores **`res.F`**, the survival niche set (here n=13, one per Das–Dennis direction), against pymoo's 100-point `pareto_front()`. The published 0.0514 vs 0.0629 pair is those two reporters. It is not evidence that the algorithm is better by ~0.011 IGD.
+
+Seed 1 remeasured **2026-09-22**, pymoo 0.6.2. The C# console reprinted the published scalar.
+
+| Set | Reference front | n | IGD |
+|-----|-----------------|--:|----:|
+| C# non-dominated front | library 500-point ZDT1 | 52 | 0.051430749249856716 (console 0.0514307) |
+| C# non-dominated front | pymoo 100-point PF | 52 | 0.05119280568479224 |
+| pymoo final population, non-dominated | pymoo 100-point PF | 52 | 0.05378307132263516 |
+| pymoo `res.F` | pymoo 100-point PF | 13 | 0.0628633417931784 |
+| pymoo `res.F` | library 500-point ZDT1 | 13 | 0.06276449352608372 |
+| pymoo population ND | library 500-point ZDT1 | 52 | 0.05381261662420749 |
+
+On the shared 100-point PF, the full-front pair is C# 0.05119280568479224 and pymoo 0.05378307132263516. One seed cannot carry a ranking. Switching the C# front from the 500-point sampler to that 100-point PF changes its IGD by 0.051430749249856716 − 0.05119280568479224 = 2.37943565064476×10⁻⁴, which is much smaller than the 13-versus-52 gap on pymoo's own PF (0.0628633417931784 − 0.05378307132263516 = 0.00908027047054324).
+
+`ReferenceDirectionThinning.OnePerDirection` keeps the raw objective vector closest (perpendicular distance) to each Das–Dennis direction. On this C# front that helper kept 13 points and scored **0.06357076535717451** against the 100-point PF. That set is not `res.F`. The 15-seed pymoo column is still `res.F`, so its median ratio inherits the same asymmetry. Do not rewrite [WILCOXON-RESULTS.md](WILCOXON-RESULTS.md) until those seeds are re-run on a shared front definition.
 
 ### DTLZ2 multi-seed (C# `PymooCompatible`, same protocol)
 

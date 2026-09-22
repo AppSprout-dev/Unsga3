@@ -61,6 +61,30 @@ public class MetricsTests
     }
 
     [Fact]
+    public void OnePerDirection_keeps_the_closer_point_on_a_shared_ray()
+    {
+        var directions = new[] { new[] { 1.0, 0.0 }, new[] { 0.0, 1.0 } };
+        var onAxis = new[] { 1.0, 0.0 };
+        var nearby = new[] { 0.9, 0.1 };
+        var other = new[] { 0.0, 1.0 };
+        var kept = ReferenceDirectionThinning.OnePerDirection(
+            new[] { nearby, onAxis, other },
+            directions);
+
+        Assert.Equal(2, kept.Length);
+        Assert.Contains(kept, p => p[0] == 1.0 && p[1] == 0.0);
+        Assert.Contains(kept, p => p[0] == 0.0 && p[1] == 1.0);
+    }
+
+    [Fact]
+    public void OnePerDirection_rejects_a_short_objective_vector()
+    {
+        var directions = new[] { new[] { 1.0, 0.0 } };
+        Assert.Throws<ArgumentException>(() =>
+            ReferenceDirectionThinning.OnePerDirection(new[] { new[] { 1.0 } }, directions));
+    }
+
+    [Fact]
     public void Dtlz2_front_on_unit_sphere()
     {
         foreach (var p in ParetoFronts.Dtlz2(3, partitions: 4))

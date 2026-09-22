@@ -103,6 +103,7 @@ Lower IGD is better.
 
 ## Notes
 
+- ZDT1 sets differ. The Unsga3 column is the full non-dominated front. The pymoo column is `res.F` (about one point per reference direction). The median ratio **0.764107** inherits that asymmetry. A shared-front seed-1 note is in [ORACLE-RESULTS.md](ORACLE-RESULTS.md). Do not replace this table until both columns use one front definition.
 - Not bit-identical: different RNG implementations and minor operator ordering.
 - Practical equivalence: median IGD within ~1–2× and non-significant MWU is a strong claim; significant differences with small effect size (ratio ≈ 1) are still acceptable for a v0.x port.
 - Reproduce: `python tools/oracle/run_multiseed_wilcoxon.py`

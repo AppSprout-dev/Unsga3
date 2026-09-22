@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
 - DTLZ2 pymoo oracle passes `n_var=12` (k=10) to match `Dtlz2Problem`. The published 15-seed table used pymoo’s default `n_var=10` and is not rewritten. Seed 1 was remeasured at n_var=12.
+- Documented that ZDT IGD compares the C# full non-dominated front with pymoo `res.F`. Added `ReferenceDirectionThinning.OnePerDirection` as a cardinality aid, not a parity claim.
 
 ## [0.1.4] — 2026-09-19
 
