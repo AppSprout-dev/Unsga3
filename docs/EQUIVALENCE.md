@@ -71,6 +71,7 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Scored set | full non-dominated front | `res.F` niche optimum |
 | Hyperplane norm | persistent ideal, ND extremes, correct ASF | `HyperplaneNormalization` |
 | Collapsed nadir | if the span is still ≤ 1e-6, nadir = ideal + 1 | stop at worst-of-population |
+| Infeasible points in the hyperplane | ideal and worst from the whole pool, including infeasible points. ASF extremes use the ND index set when supplied | pymoo niching can restrict the normalized set to feasible members |
 
 ## DTLZ2 gap history
 

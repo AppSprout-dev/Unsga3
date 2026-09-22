@@ -15,6 +15,12 @@ namespace Unsga3.Core;
 /// worst-of-population, so two nearly equal objectives stay a tiny span apart and
 /// normalize to 0 and 1. Here they normalize to about 0 and 1e-8. See
 /// <c>NormalizationTests.Collapsed_span_sets_nadir_to_ideal_plus_one</c>.
+/// Ideal and worst are updated from every point in the pool, feasible or not.
+/// There is no constrained benchmark in this library. A feasible (1, 1) beside an
+/// infeasible (0, 0) therefore takes ideal (0, 0) from the infeasible point.
+/// Extreme-point ASF uses the non-dominated index set when the caller supplies one
+/// (constraint-domination puts only the feasible point on that front) and the whole
+/// pool when it does not. See <c>Infeasible_origin_sets_ideal_from_the_whole_pool</c>.
 /// </remarks>
 public sealed class Normalization
 {

@@ -131,6 +131,7 @@ ZDT2 quality A/B is gens=250 + `PymooCompatible` (not the loose smoke bar). ZDT1
 | IGD mean-distance | **aligned** |
 | ASF / axis intercepts | **aligned** |
 | Collapsed nadir (span ≤ 1e-6) | **delta**: nadir = ideal + 1 after the worst-of-pop fallback. pymoo 0.6.2 stops at worst-of-pop. Locked by `Collapsed_span_sets_nadir_to_ideal_plus_one` (`{2, 2+1e-8}` → nadir 3). |
+| Infeasible points | **current rule, locked**: ideal and worst include them. Fixture is feasible (1, 1) vs infeasible (0, 0) → ideal (0, 0). No constrained benchmark yet. |
 | Persistent ideal + ND extremes | **aligned** |
 | `TournamentMode.PymooCompatible` | **implemented** |
 | Duplicate elimination | **implemented** (default on) |
