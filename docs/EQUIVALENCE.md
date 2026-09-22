@@ -21,8 +21,10 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
 4. **Same pop size / generations / seed** (or 15–31 seeds for statistics)  
 5. **Metrics:** IGD (primary), IGD+, HV (M=2, document ref point), front plots for M≤3.
    Score the **same front definition** and the **same reference set**. C# reports the full non-dominated front. pymoo `res.F` is the survival niche set (about one point per filled direction). `ReferenceDirectionThinning.OnePerDirection` can match cardinality; it does not reproduce `res.F` and is not a parity claim.
-6. **Tolerance:** median IGD within ~1–2× of pymoo on ZDT/DTLZ is the practical bar.
-   15-seed: ZDT1 median ratio 0.76 (MWU n.s.); DTLZ2 median ~**1.6×** on the published table, whose pymoo column is **n_var=10** while C# is n_var=12.
+6. **Tolerance:** do not read the published table as median IGD within 1–2% of pymoo.
+   ZDT1 median ratio 0.764107, Mann–Whitney U = 65, p = 0.0512394 (the pymoo column is `res.F`).
+   DTLZ2 median ratio 1.58638, U = 222, p = 6.15164×10⁻⁶ (the pymoo column is n_var=10). That comparison rejects equal distributions at α = 0.05.
+   The CI guard is 2× the published mismatched DTLZ2 scalar 0.00350, which fails a regression to about 2.9×. It is not a same-problem equivalence claim.
 
 Published A/B budgets (ZDT1 / DTLZ2 unchanged; ZDT2 matches unsga3-bend protocol honesty):
 
@@ -67,6 +69,7 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Mating pool | N independent tournaments with replacement | two shuffled consecutive-pair passes |
 | Niche ids at mating | `PrepareForSelection` re-normalizes survivors and re-associates | ids written during survival are kept |
 | `WithDasDennis(1, 1)` | throws. One objective has a single direction, and N must be ≥ 2 | pass `populationSize` ≥ 2 for the single-objective degeneration |
+| Reference layers | single-layer Das–Dennis only. Two-layer directions are absent | many-objective NSGA-III adds an inside layer for larger M |
 | Duplicate elimination | default **on**. Key is `G12` (12 significant digits), not 12 decimal places. Attempts are capped when mutation cannot produce a new key; remaining slots may be duplicates | `eliminate_duplicates=True` |
 | Survival RNG | optional RNG niche pick | random among equal niches |
 | IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |

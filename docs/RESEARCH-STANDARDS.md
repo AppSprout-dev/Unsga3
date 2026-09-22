@@ -35,7 +35,7 @@ Default dimensions (Deb / pymoo convention):
 |------|----------------|
 | Crossover | SBX, η_c = **30**, p_c = **1.0** (pymoo). Paper section 4 uses p_c = **0.9** |
 | Mutation | Polynomial, η_m = **20**, p_m = **1/n** |
-| Reference set | **Das–Dennis** (uniform) on unit simplex |
+| Reference set | **Das–Dennis** (uniform) on the unit simplex, **single layer**. Two-layer directions for larger M are absent |
 | Population size | Often = #reference directions (or slightly larger). N ≥ 2. `WithDasDennis(1, 1)` throws because |H| = 1; pass an explicit population size for single-objective runs |
 | Selection | U-NSGA-III **tournament** (not NSGA-III random mating) |
 
@@ -73,7 +73,7 @@ Sample **≥ 500** points on continuous bi-objective fronts (common practice).
 
 Typical ZDT: r = (1.1, 1.1). Always document r; never compare HV across different r.
 
-## 4. Equivalence protocol (one-to-one claim)
+## 4. Equivalence protocol
 
 1. Same problem definition (bounds, n, evaluate)  
 2. Same Das–Dennis partitions → identical ref set size  
@@ -83,7 +83,10 @@ Typical ZDT: r = (1.1, 1.1). Always document r; never compare HV across differen
    - DTLZ2: pop=92, **gens=150**, `PymooCompatible`  
 4. Fixed seed **or** 15–31 seeds → median + IQR IGD  
 5. Compare IGD (and HV for M=2) to pymoo `UNSGA3` on the **same front definition**. C# uses the full non-dominated front; pymoo's harness value is `res.F` (the niche optimum). A gap between those two reporters is a set-definition gap until both sides are reduced the same way.
-6. Shipping bar: median IGD within ~1–2% of pymoo on ZDT1/DTLZ2 (or non-inferior Wilcoxon). ZDT2 has no published C# Wilcoxon table; quality budget is 250 gens.
+6. Shipping bar: the published 15-seed table is **not** “median IGD within ~1–2% of pymoo.”
+   ZDT1: Mann–Whitney U = 65, p = 0.0512394, median ratio 0.764107 (pymoo column is `res.F`).
+   DTLZ2: U = 222, p = 6.15164×10⁻⁶, median ratio 1.58638 (pymoo column is n_var=10). That test rejects equal distributions at α = 0.05.
+   ZDT2 has no published C# Wilcoxon table; the quality budget is 250 generations. A matched 15-seed re-run has not replaced the table.
 
 Export path: dump final `F` as CSV from both sides; compute IGD in this library.
 

@@ -97,9 +97,10 @@ public class IgdSmokeTests
         var obtained = result.NonDominatedSolutions.Select(i => (double[])i.Objectives.Clone()).ToArray();
         double igd = PerformanceIndicators.InvertedGenerationalDistance(obtained, ParetoFronts.Dtlz2(3, 12));
         const double pymooBaseline = 0.00350;
-        // ~3× still tracks parity work; was ~5× (0.017) pre-fix and ~10× (0.037) on default.
-        Assert.True(igd <= pymooBaseline * 3.0,
-            $"DTLZ2 IGD={igd} should be ≤ 3× pymoo baseline {pymooBaseline}");
+        // Published mismatched-k scalar (pymoo n_var=10). C# seed 1 is about 1.15× this.
+        // 3× still passed a regression to about 2.9×. 2× rejects that and keeps the current run.
+        Assert.True(igd <= pymooBaseline * 2.0,
+            $"DTLZ2 IGD={igd} should be ≤ 2× pymoo baseline {pymooBaseline}");
     }
 
     [Fact]

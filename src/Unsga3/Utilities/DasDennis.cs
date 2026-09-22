@@ -2,6 +2,8 @@ namespace Unsga3.Utilities;
 
 /// <summary>
 /// Das–Dennis structured reference directions on the unit simplex (NSGA-III / U-NSGA-III).
+/// Single layer only. Two-layer directions (an outer layer plus an inside layer),
+/// which many-objective NSGA-III uses for larger M, are absent.
 /// </summary>
 public static class ReferenceDirections
 {
@@ -39,11 +41,16 @@ public static class ReferenceDirections
         return p;
     }
 
-    /// <summary>Number of Das–Dennis points: C(p + M - 1, M - 1).</summary>
+    /// <summary>
+    /// Number of Das–Dennis points: C(p + M - 1, M - 1).
+    /// The combination is computed in a <see cref="long"/> and checked into <see cref="int"/>.
+    /// <see cref="OverflowException"/> is thrown when the value does not fit in <see cref="int"/>
+    /// (for example M = 11, p = 34, C(44, 10) = 2,481,256,778).
+    /// </summary>
     public static int Count(int numberOfObjectives, int partitions)
     {
         if (numberOfObjectives == 1) return 1;
-        return Binomial(partitions + numberOfObjectives - 1, numberOfObjectives - 1);
+        return checked((int)Binomial(partitions + numberOfObjectives - 1, numberOfObjectives - 1));
     }
 
     private static void Recurse(List<double[]> points, double[] current, int m, int p, int left, int index)
@@ -62,7 +69,7 @@ public static class ReferenceDirections
         }
     }
 
-    private static int Binomial(int n, int k)
+    private static long Binomial(int n, int k)
     {
         if (k < 0 || k > n) return 0;
         if (k == 0 || k == n) return 1;
@@ -70,9 +77,9 @@ public static class ReferenceDirections
         long result = 1;
         for (int i = 1; i <= k; i++)
         {
-            result *= n - k + i;
+            result = checked(result * (n - k + i));
             result /= i;
         }
-        return (int)result;
+        return result;
     }
 }

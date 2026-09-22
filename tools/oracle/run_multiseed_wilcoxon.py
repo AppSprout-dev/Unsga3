@@ -353,8 +353,8 @@ def markdown_report(results: dict) -> str:
         "## Notes",
         "",
         "- Not bit-identical: different RNG implementations and minor operator ordering.",
-        "- Practical equivalence: median IGD within ~1–2× and non-significant MWU is a strong claim; "
-        "significant differences with small effect size (ratio ≈ 1) are still acceptable for a v0.x port.",
+        "- These tests are not a 1–2% equivalence claim. Report the Mann–Whitney result as computed. "
+        "DTLZ2 pymoo runs in this script use n_var=12; a table generated before that change is the n_var=10 column.",
         "- Reproduce: `python tools/oracle/run_multiseed_wilcoxon.py`",
         "",
     ]

@@ -119,7 +119,7 @@ Deep-dive vs pymoo `HyperplaneNormalization` / `ReferenceDirectionSurvival` (pym
 |------|-----|
 | ZDT1 seed=1, 100 gen, default tournament | IGD ≤ 1.5 × 0.0629 |
 | ZDT2 seed=2, 250 gen, default `RankNicheDistance` | IGD &lt; 0.75 (loose CI smoke, not oracle parity) |
-| DTLZ2 seed=1, 150 gen, pymoo-mode | IGD ≤ 3 × 0.00350 (currently ~1.15×) |
+| DTLZ2 seed=1, 150 gen, pymoo-mode | IGD ≤ 2 × 0.00350. The 0.00350 scalar is the mismatched n_var=10 run. 3× still passed a regression to about 2.9×. This bar does not claim same-problem equivalence. |
 | DTLZ2 short smoke (80 gen) | IGD &lt; 0.15 |
 
 ZDT2 quality A/B is gens=250 + `PymooCompatible` (not the loose smoke bar). ZDT1 / DTLZ2 shipping bars are unchanged.
