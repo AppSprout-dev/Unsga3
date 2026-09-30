@@ -44,6 +44,35 @@ public class NonDominatedSortTests
         Assert.Equal(1, NonDominatedSort.CompareConstraintDominated(infeas, feas));
     }
 
+    [Fact]
+    public void Equal_constraint_violation_is_mutually_non_dominated()
+    {
+        // (0, 0) Pareto-dominates (1, 1), but Deb's constraint-domination stops
+        // when the violations are equal. Both land on the first front.
+        var better = Make(0, 0);
+        var worse = Make(1, 1);
+        better.Constraints[0] = 1.5;
+        worse.Constraints[0] = 1.5;
+        better.RefreshConstraintViolation();
+        worse.RefreshConstraintViolation();
+
+        Assert.Equal(0, NonDominatedSort.CompareConstraintDominated(better, worse));
+        Assert.Equal(0, NonDominatedSort.CompareConstraintDominated(worse, better));
+        Assert.False(better.ConstraintDominates(worse));
+        Assert.False(worse.ConstraintDominates(better));
+
+        var fronts = NonDominatedSort.Sort(new List<Individual> { better, worse });
+        Assert.Single(fronts);
+        Assert.Equal(2, fronts[0].Count);
+        Assert.Equal(0, better.Rank);
+        Assert.Equal(0, worse.Rank);
+
+        // A strictly smaller violation still dominates, objectives aside.
+        worse.Constraints[0] = 1.5 + 1e-6;
+        worse.RefreshConstraintViolation();
+        Assert.Equal(-1, NonDominatedSort.CompareConstraintDominated(better, worse));
+    }
+
     private static Individual Make(double f1, double f2)
     {
         var ind = new Individual(1, 2, 1);

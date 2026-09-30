@@ -2,8 +2,9 @@ namespace Unsga3.Utilities;
 
 /// <summary>
 /// Das–Dennis structured reference directions on the unit simplex (NSGA-III / U-NSGA-III).
-/// Single layer only. Two-layer directions (an outer layer plus an inside layer),
-/// which many-objective NSGA-III uses for larger M, are absent.
+/// <see cref="DasDennis"/> is a single layer and remains the default
+/// (<c>WithDasDennis</c>, and the M≤3 oracles). <see cref="TwoLayerDasDennis"/> adds
+/// Deb &amp; Jain Part I's inside layer for larger M. Survival accepts either array.
 /// </summary>
 public static class ReferenceDirections
 {
@@ -26,6 +27,79 @@ public static class ReferenceDirections
         var current = new double[numberOfObjectives];
         Recurse(points, current, numberOfObjectives, partitions, partitions, 0);
         return points.ToArray();
+    }
+
+    /// <summary>
+    /// Outer Das–Dennis layer plus an inside layer scaled toward the centroid
+    /// (Deb &amp; Jain, NSGA-III Part I). The inside point is
+    /// <c>w' = s·w + (1−s)/M</c>, which stays on the simplex.
+    /// <paramref name="innerScaling"/> defaults to 0.5. Points that repeat an
+    /// earlier direction (max-norm at most 1e-12), including the shared centroid,
+    /// are dropped. Single-layer <see cref="DasDennis"/> stays the default;
+    /// current M≤3 oracles do not need a second layer.
+    /// </summary>
+    /// <param name="numberOfObjectives">Simplex dimension M.</param>
+    /// <param name="outerPartitions">Divisions on the boundary layer.</param>
+    /// <param name="innerPartitions">Divisions on the inside layer.</param>
+    /// <param name="innerScaling">Scale of the inside layer toward the centroid, in (0, 1].</param>
+    public static double[][] TwoLayerDasDennis(
+        int numberOfObjectives,
+        int outerPartitions,
+        int innerPartitions,
+        double innerScaling = 0.5)
+    {
+        if (!(innerScaling > 0.0) || innerScaling > 1.0)
+            throw new ArgumentOutOfRangeException(
+                nameof(innerScaling), innerScaling, "Inner scaling must be in (0, 1].");
+
+        var outer = DasDennis(numberOfObjectives, outerPartitions);
+        var inner = DasDennis(numberOfObjectives, innerPartitions);
+        var scaled = new double[inner.Length][];
+        for (int i = 0; i < inner.Length; i++)
+            scaled[i] = ScaleTowardCentroid(inner[i], innerScaling);
+
+        var kept = new List<double[]>(outer.Length + scaled.Length);
+        kept.AddRange(outer);
+        for (int i = 0; i < scaled.Length; i++)
+        {
+            if (!IsDuplicate(scaled[i], kept))
+                kept.Add(scaled[i]);
+        }
+
+        return kept.ToArray();
+    }
+
+    /// <summary><c>w' = s·w + (1−s)/M</c>. Sum is unchanged when <paramref name="w"/> is on the simplex.</summary>
+    internal static double[] ScaleTowardCentroid(double[] w, double scaling)
+    {
+        int m = w.Length;
+        double shift = (1.0 - scaling) / m;
+        var scaled = new double[m];
+        for (int j = 0; j < m; j++)
+            scaled[j] = w[j] * scaling + shift;
+        return scaled;
+    }
+
+    private static bool IsDuplicate(double[] point, List<double[]> kept)
+    {
+        for (int i = 0; i < kept.Count; i++)
+        {
+            var other = kept[i];
+            bool near = true;
+            for (int j = 0; j < point.Length; j++)
+            {
+                if (Math.Abs(point[j] - other[j]) > 1e-12)
+                {
+                    near = false;
+                    break;
+                }
+            }
+
+            if (near)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -15,12 +15,13 @@ namespace Unsga3.Core;
 /// worst-of-population, so two nearly equal objectives stay a tiny span apart and
 /// normalize to 0 and 1. Here they normalize to about 0 and 1e-8. See
 /// <c>NormalizationTests.Collapsed_span_sets_nadir_to_ideal_plus_one</c>.
-/// Ideal and worst are updated from every point in the pool, feasible or not.
-/// There is no constrained benchmark in this library. A feasible (1, 1) beside an
-/// infeasible (0, 0) therefore takes ideal (0, 0) from the infeasible point.
-/// Extreme-point ASF uses the non-dominated index set when the caller supplies one
-/// (constraint-domination puts only the feasible point on that front) and the whole
-/// pool when it does not. See <c>Infeasible_origin_sets_ideal_from_the_whole_pool</c>.
+/// When any member is feasible, ideal, worst, and ASF extremes are taken from the
+/// feasible subset only (Jain &amp; Deb Part II; pymoo <c>Survival.filter_infeasible</c>
+/// passes that subset into <c>HyperplaneNormalization</c>). An all-infeasible
+/// population does not move the persistent hyperplane. See
+/// <c>Feasible_members_set_the_hyperplane</c>.
+/// Extreme-point ASF uses the non-dominated index set when the caller supplies one,
+/// intersected with the feasible subset, and the feasible members when it does not.
 /// </remarks>
 public sealed class Normalization
 {
@@ -60,9 +61,12 @@ public sealed class Normalization
 
     /// <summary>
     /// Update ideal / nadir from <paramref name="population"/> and return normalized
-    /// objective vectors (same order). When <paramref name="nonDominatedIndices"/> is
-    /// provided, extreme points are sought only among that subset (pymoo / NSGA-III);
-    /// otherwise the whole population is used.
+    /// objective vectors (same order). When any member is feasible, only feasible
+    /// objectives move the hyperplane. An all-infeasible population is projected with
+    /// the current hyperplane and does not update it. When
+    /// <paramref name="nonDominatedIndices"/> is provided, extreme points are sought
+    /// only among that subset (pymoo / NSGA-III), still restricted to feasible members;
+    /// otherwise the feasible members are used.
     /// </summary>
     public double[][] Normalize(
         IReadOnlyList<Individual> population,
@@ -72,10 +76,31 @@ public sealed class Normalization
         int n = population.Count;
         if (n == 0) return Array.Empty<double[]>();
 
-        // Persistent ideal / worst over the run (pymoo: never loses the best ideal).
+        int feasibleCount = 0;
         for (int i = 0; i < n; i++)
         {
-            var f = population[i].Objectives;
+            if (population[i].IsFeasible)
+                feasibleCount++;
+        }
+
+        // All-infeasible: keep the hyperplane from the last feasible generation.
+        if (feasibleCount == 0)
+            return ProjectWithFixedHyperplane(population);
+
+        // Indices that may move ideal / worst. All-feasible is 0..n-1, in order,
+        // so the unconstrained update matches the previous whole-pool loop.
+        int[] poolIdx = new int[feasibleCount];
+        int w = 0;
+        for (int i = 0; i < n; i++)
+        {
+            if (population[i].IsFeasible)
+                poolIdx[w++] = i;
+        }
+
+        // Persistent ideal / worst over the run (pymoo: never loses the best ideal).
+        for (int p = 0; p < poolIdx.Length; p++)
+        {
+            var f = population[poolIdx[p]].Objectives;
             for (int j = 0; j < _m; j++)
             {
                 if (f[j] < _ideal[j]) _ideal[j] = f[j];
@@ -83,22 +108,11 @@ public sealed class Normalization
             }
         }
 
-        // Extreme-point search set: ND front when supplied, else all.
-        int[] ndIdx;
-        if (nonDominatedIndices is { Count: > 0 })
-        {
-            ndIdx = new int[nonDominatedIndices.Count];
-            for (int i = 0; i < nonDominatedIndices.Count; i++)
-                ndIdx[i] = nonDominatedIndices[i];
-        }
-        else
-        {
-            ndIdx = new int[n];
-            for (int i = 0; i < n; i++) ndIdx[i] = i;
-        }
+        // Extreme-point search set: ND front when supplied, else the hyperplane pool.
+        int[] ndIdx = ExtremeIndices(population, nonDominatedIndices, poolIdx);
 
         UpdateExtremePoints(population, ndIdx);
-        UpdateNadir(population, ndIdx);
+        UpdateNadir(population, ndIdx, poolIdx);
 
         var normalized = new double[n][];
         for (int i = 0; i < n; i++)
@@ -118,6 +132,95 @@ public sealed class Normalization
         {
             double span = _nadir[j] - _ideal[j];
             _intercepts[j] = span > 1e-12 ? span : 1.0;
+        }
+
+        return normalized;
+    }
+
+    /// <summary>
+    /// ND indices the caller supplied, restricted to the hyperplane pool, or the
+    /// pool itself when the caller did not supply a front.
+    /// </summary>
+    private static int[] ExtremeIndices(
+        IReadOnlyList<Individual> population,
+        IReadOnlyList<int>? nonDominatedIndices,
+        int[] poolIdx)
+    {
+        if (nonDominatedIndices is not { Count: > 0 })
+            return (int[])poolIdx.Clone();
+
+        // All-feasible pool is every index, so a supplied front is copied as-is.
+        if (poolIdx.Length == population.Count)
+        {
+            var copy = new int[nonDominatedIndices.Count];
+            for (int i = 0; i < nonDominatedIndices.Count; i++)
+                copy[i] = nonDominatedIndices[i];
+            return copy;
+        }
+
+        var kept = new List<int>(nonDominatedIndices.Count);
+        for (int i = 0; i < nonDominatedIndices.Count; i++)
+        {
+            int idx = nonDominatedIndices[i];
+            if ((uint)idx < (uint)population.Count && population[idx].IsFeasible)
+                kept.Add(idx);
+        }
+
+        return kept.Count > 0 ? kept.ToArray() : (int[])poolIdx.Clone();
+    }
+
+    /// <summary>
+    /// Normalize with the persistent ideal and nadir. Does not write them.
+    /// Before any feasible generation, a temporary ideal / nadir is used only
+    /// for this projection so association stays finite.
+    /// </summary>
+    private double[][] ProjectWithFixedHyperplane(IReadOnlyList<Individual> population)
+    {
+        int n = population.Count;
+        var origin = new double[_m];
+        var nadir = new double[_m];
+        bool persisted = !double.IsPositiveInfinity(_ideal[0]);
+        if (persisted)
+        {
+            Array.Copy(_ideal, origin, _m);
+            Array.Copy(_nadir, nadir, _m);
+        }
+        else
+        {
+            for (int j = 0; j < _m; j++)
+            {
+                origin[j] = double.PositiveInfinity;
+                nadir[j] = double.NegativeInfinity;
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                var f = population[i].Objectives;
+                for (int j = 0; j < _m; j++)
+                {
+                    if (f[j] < origin[j]) origin[j] = f[j];
+                    if (f[j] > nadir[j]) nadir[j] = f[j];
+                }
+            }
+
+            for (int j = 0; j < _m; j++)
+            {
+                if (nadir[j] - origin[j] <= 1e-6)
+                    nadir[j] = origin[j] + 1.0;
+            }
+        }
+
+        var normalized = new double[n][];
+        for (int i = 0; i < n; i++)
+        {
+            normalized[i] = new double[_m];
+            var f = population[i].Objectives;
+            for (int j = 0; j < _m; j++)
+            {
+                double denom = nadir[j] - origin[j];
+                if (denom < 1e-12) denom = 1.0;
+                normalized[i][j] = (f[j] - origin[j]) / denom;
+            }
         }
 
         return normalized;
@@ -171,9 +274,9 @@ public sealed class Normalization
         _extremePoints = extreme;
     }
 
-    private void UpdateNadir(IReadOnlyList<Individual> population, int[] ndIdx)
+    private void UpdateNadir(IReadOnlyList<Individual> population, int[] ndIdx, int[] poolIdx)
     {
-        // Worst of front / population this generation.
+        // Worst of front / hyperplane pool this generation.
         var worstOfFront = new double[_m];
         var worstOfPop = new double[_m];
         for (int j = 0; j < _m; j++)
@@ -181,9 +284,9 @@ public sealed class Normalization
             worstOfFront[j] = double.NegativeInfinity;
             worstOfPop[j] = double.NegativeInfinity;
         }
-        for (int i = 0; i < population.Count; i++)
+        for (int p = 0; p < poolIdx.Length; p++)
         {
-            var f = population[i].Objectives;
+            var f = population[poolIdx[p]].Objectives;
             for (int j = 0; j < _m; j++)
                 if (f[j] > worstOfPop[j]) worstOfPop[j] = f[j];
         }

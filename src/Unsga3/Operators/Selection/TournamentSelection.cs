@@ -210,6 +210,8 @@ public sealed class TournamentSelection
     /// <summary>
     /// Recompute ranks and niche association for mating. This is a second normalization
     /// of the survivors. pymoo keeps the niche ids from environmental selection.
+    /// The normalizer keeps the feasible hyperplane: infeasible survivors do not move
+    /// ideal or nadir.
     /// </summary>
     public static void PrepareForSelection(
         IReadOnlyList<Individual> population,

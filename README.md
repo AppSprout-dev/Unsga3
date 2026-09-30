@@ -73,13 +73,14 @@ var algo = new Unsga3Algorithm(dirs, populationSize: 92, seed: 1,
 | `Unsga3Algorithm` | Main entry — `Run(problem, gens)` |
 | `Individual` | Variables / Objectives / Constraints |
 | `OptimizationResult` | Final population + non-dominated set |
-| `ReferenceDirections.DasDennis` | Structured reference points |
+| `ReferenceDirections.DasDennis` | Single-layer reference points (default) |
+| `ReferenceDirections.TwoLayerDasDennis` | Outer layer plus an inside layer for larger M |
 | `SimulatedBinaryCrossover` / `PolynomialMutation` | Variation operators |
 | `PerformanceIndicators` | IGD, GD, 2-D hypervolume |
 | `TournamentMode` | Default rank→niche, `PymooCompatible` (distance-tie coin flip), or opt-in `Algorithm2` (keep the second parent) |
 | `MatingPoolMode` | Default independent tournaments; opt-in `TwoShuffledPasses` (paper / pymoo 0.6.2) |
 
-Built-in problems: ZDT1–4/6, DTLZ1–4/7, Sphere, Ackley, Rosenbrock.
+Built-in problems: ZDT1–4/6, DTLZ1–4/7, Sphere, Ackley, Rosenbrock, and constrained OSY, TNK, and C1-DTLZ1 (self-tests only; no IGD table yet).
 
 ## Build & test
 
@@ -154,6 +155,7 @@ Algorithm papers (please cite these when publishing results):
 
 - Seada, H. & Deb, K. (2016). *A Unified Evolutionary Optimization Procedure for Single, Multiple, and Many Objectives.* IEEE Trans. Evol. Comput.
 - Deb, K. & Jain, H. (2014). *An Evolutionary Many-Objective Optimization Algorithm Using Reference-Point-Based Nondominated Sorting Approach (NSGA-III), Part I.* IEEE Trans. Evol. Comput.
+- Jain, H. & Deb, K. (2014). *NSGA-III, Part II: Handling Constraints and Extending to an Adaptive Approach.* IEEE Trans. Evol. Comput.
 - Das, I. & Dennis, J. E. (1998). *Normal-Boundary Intersection.* SIAM J. Optim.
 
 ## License

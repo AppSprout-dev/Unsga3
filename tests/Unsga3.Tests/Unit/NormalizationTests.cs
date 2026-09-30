@@ -111,12 +111,11 @@ public class NormalizationTests
     }
 
     [Fact]
-    public void Infeasible_origin_sets_ideal_from_the_whole_pool()
+    public void Feasible_members_set_the_hyperplane()
     {
-        // Locks the current rule. Feasible (1,1) vs infeasible (0,0).
-        // Ideal and worst are taken from the whole pool. Constraint-domination
-        // puts only the feasible point on the first front, so the ND extreme
-        // search does not see the origin; the ideal still does.
+        // Feasible (1, 1) beside infeasible (0, 0). Ideal and worst come from the
+        // feasible point only (Jain & Deb Part II / pymoo filter_infeasible).
+        // One feasible point collapses, so nadir = ideal + 1.
         var feasible = new Individual(1, 2, 1);
         feasible.Objectives[0] = 1;
         feasible.Objectives[1] = 1;
@@ -139,19 +138,43 @@ public class NormalizationTests
         var norm = new Normalization(2);
         var normalized = norm.Normalize(pop, fronts[0]);
 
-        Assert.Equal(0.0, norm.IdealPoint[0], 12);
-        Assert.Equal(0.0, norm.IdealPoint[1], 12);
-        Assert.Equal(1.0, norm.NadirPoint[0], 12);
-        Assert.Equal(1.0, norm.NadirPoint[1], 12);
-        Assert.Equal(1.0, normalized[0][0], 9);
-        Assert.Equal(1.0, normalized[0][1], 9);
-        Assert.Equal(0.0, normalized[1][0], 9);
-        Assert.Equal(0.0, normalized[1][1], 9);
+        Assert.Equal(1.0, norm.IdealPoint[0], 12);
+        Assert.Equal(1.0, norm.IdealPoint[1], 12);
+        Assert.Equal(2.0, norm.NadirPoint[0], 12);
+        Assert.Equal(2.0, norm.NadirPoint[1], 12);
+        Assert.Equal(0.0, normalized[0][0], 9);
+        Assert.Equal(0.0, normalized[0][1], 9);
+        Assert.Equal(-1.0, normalized[1][0], 9);
+        Assert.Equal(-1.0, normalized[1][1], 9);
+    }
 
-        // Unfiltered ASF scores the infeasible origin ahead of (1,1).
-        double[] ideal = { 0.0, 0.0 };
-        Assert.True(Normalization.Asf(infeasible.Objectives, 0, ideal)
-            < Normalization.Asf(feasible.Objectives, 0, ideal));
+    [Fact]
+    public void All_infeasible_population_does_not_move_the_hyperplane()
+    {
+        var norm = new Normalization(2);
+        var feasible = new List<Individual> { Make2(1, 3), Make2(3, 1) };
+        norm.Normalize(feasible);
+        Assert.Equal(1.0, norm.IdealPoint[0], 12);
+        Assert.Equal(1.0, norm.IdealPoint[1], 12);
+        double nadir0 = norm.NadirPoint[0];
+        double nadir1 = norm.NadirPoint[1];
+
+        var infeasible = new Individual(1, 2, 1);
+        infeasible.Objectives[0] = 0;
+        infeasible.Objectives[1] = 0;
+        infeasible.Constraints[0] = 2;
+        infeasible.RefreshConstraintViolation();
+        var worse = new Individual(1, 2, 1);
+        worse.Objectives[0] = 9;
+        worse.Objectives[1] = 9;
+        worse.Constraints[0] = 4;
+        worse.RefreshConstraintViolation();
+
+        norm.Normalize(new List<Individual> { infeasible, worse });
+        Assert.Equal(1.0, norm.IdealPoint[0], 12);
+        Assert.Equal(1.0, norm.IdealPoint[1], 12);
+        Assert.Equal(nadir0, norm.NadirPoint[0], 12);
+        Assert.Equal(nadir1, norm.NadirPoint[1], 12);
     }
 
     private static Individual Make1(double a)

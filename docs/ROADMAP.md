@@ -18,7 +18,8 @@ Living plan for Unsga3. Issues track concrete work; this page is the narrative.
 - [ ] `net8.0` (+ `net10.0`) multi-target for broader NuGet consumers  
 - [ ] nuget.org publish (in addition to GitHub Packages)  
 - [ ] GD+ indicator (IGD+ has a hand-case test; GD and IGD were already implemented)
-- [ ] Constrained demos (OSY / TNK) with self-tests  
+- [x] Constrained demos (OSY, TNK, C1-DTLZ1) with formulation and survival self-tests  
+- [ ] Constrained IGD / Wilcoxon vs pymoo (no table until measured runs exist)  
 - [ ] API docs site (DocFX or similar)  
 
 ## Medium term (0.3+)

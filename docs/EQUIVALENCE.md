@@ -11,6 +11,7 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
 - COIN Report 2014022; Seada & Deb, IEEE TEVC 2016  
 - [pymoo `UNSGA3`](https://pymoo.org/algorithms/moo/unsga3.html)  
 - pymoo `nsga3.py` — `HyperplaneNormalization`, `associate_to_niches`, `niching`  
+- pymoo `Survival.filter_infeasible` — feasible niching, then ascending-CV fill (Jain & Deb, NSGA-III Part II)  
 - Indicators: [pymoo performance indicators](https://pymoo.org/misc/indicators.html) (GD, IGD, IGD+, HV)
 
 ## Protocol
@@ -44,12 +45,13 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Bi | ZDT1–4, ZDT6 | 2 | yes |
 | Many | DTLZ1–4, DTLZ7 | 3+ | yes |
 | Hard | WFG1, WFG2, WFG9 | 3–5 | planned |
-| Constrained | OSY, TNK, C1-DTLZ1 | 2–3 | planned |
+| Constrained | OSY, TNK, C1-DTLZ1 | 2–3 | yes (self-tests; no IGD table) |
 
 ## Unit checks
 
 - Reference association & niche counts  
-- Non-dominated ranks / constraint domination  
+- Non-dominated ranks / constraint domination (equal CV is mutual non-domination)  
+- Feasible niching, CV fill, and OSY / TNK / C1-DTLZ1 (`ConstrainedSurvivalTests`, `ConstrainedProblemTests`). No IGD table.  
 - **Normalization intercepts / ASF axis extremes** (`NormalizationTests`)  
 - Tournament pressure  
 - `populationSize: null` ⇒ `|refs|`  
@@ -71,14 +73,17 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Mating pool (`TwoShuffledPasses`, opt-in) | two shuffled passes of consecutive pairs. When N parents are drawn from N members, each index is a contestant twice | pymoo 0.6.2 `TournamentSelection` (pressure 2) **is** this pool: `n_perms = ceil(2N / N)` permutations, then consecutive pairs |
 | Niche ids at mating | `PrepareForSelection` re-normalizes survivors and re-associates | ids written during survival are kept |
 | `WithDasDennis(1, 1)` | throws. One objective has a single direction, and N must be ≥ 2 | pass `populationSize` ≥ 2 for the single-objective degeneration |
-| Reference layers | single-layer Das–Dennis only. Two-layer directions are absent | many-objective NSGA-III adds an inside layer for larger M |
+| Reference layers | `DasDennis` / `WithDasDennis` stay single-layer (the M≤3 oracles). `TwoLayerDasDennis` adds Part I's inside layer, default scale 0.5, duplicates removed | multi-layer factory; NSGA-III consumes whatever `ref_dirs` it is given |
 | Duplicate elimination | default **on**. Key is `G12` (12 significant digits), not 12 decimal places. Attempts are capped when mutation cannot produce a new key; remaining slots may be duplicates | `eliminate_duplicates=True` |
 | Survival RNG | optional RNG niche pick | random among equal niches |
 | IGD | **mean** nearest distance | same (verified pymoo 0.6.2) |
 | Scored set | full non-dominated front | `res.F` niche optimum |
 | Hyperplane norm | persistent ideal, ND extremes, correct ASF | `HyperplaneNormalization` |
 | Collapsed nadir | if the span is still ≤ 1e-6, nadir = ideal + 1 | stop at worst-of-population |
-| Infeasible points in the hyperplane | ideal and worst from the whole pool, including infeasible points. ASF extremes use the ND index set when supplied | pymoo niching can restrict the normalized set to feasible members |
+| Constrained survival | Niche feasible members only. If fewer than N are feasible, fill by ascending CV (original index breaks ties) with no niche assignment. All-infeasible generations truncate by CV | `Survival.filter_infeasible` |
+| Feasible hyperplane | Ideal, worst, and ASF use feasible objectives when any feasible member exists. An all-infeasible generation does not move the hyperplane | `HyperplaneNormalization.update` sees the feasible subset passed by `filter_infeasible` |
+| Equal CV in the sort | Two infeasible individuals with the same violation are mutually non-dominated (Deb). Objectives are not compared | constraint-domination; CV ordering is separate from Pareto |
+| Tournament equal CV | unchanged. `RankNicheDistance` still falls through to rank, niche, and distance. `PymooCompatible` still coin-flips | pymoo coin-flips |
 
 ## Mating pool
 
