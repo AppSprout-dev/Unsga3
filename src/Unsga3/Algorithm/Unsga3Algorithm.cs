@@ -73,7 +73,9 @@ public sealed class Unsga3Algorithm
     }
 
     /// <summary>
-    /// Convenience: build Das–Dennis directions then construct the algorithm.
+    /// Convenience: build single-layer Das–Dennis directions then construct the algorithm.
+    /// Two-layer directions are <see cref="ReferenceDirections.TwoLayerDasDennis"/>, passed
+    /// to the constructor; M≤3 oracles stay on this single-layer factory.
     /// One objective produces a single direction, so the default population size is 1.
     /// The constructor requires N ≥ 2, and <c>WithDasDennis(1, 1)</c> throws.
     /// Single-objective runs must pass <paramref name="populationSize"/> ≥ 2

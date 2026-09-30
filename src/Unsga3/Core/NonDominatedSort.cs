@@ -85,7 +85,10 @@ public static class NonDominatedSort
         {
             if (a.ConstraintViolation < b.ConstraintViolation) return -1;
             if (a.ConstraintViolation > b.ConstraintViolation) return 1;
-            // equal violation → fall through to objective comparison
+            // Deb constraint-domination: equal violation ⇒ neither dominates.
+            // Objectives are not consulted. Tournament comparators are separate
+            // and still break an equal-CV tie their own way.
+            return 0;
         }
 
         return ComparePareto(a.Objectives, b.Objectives);

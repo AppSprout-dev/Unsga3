@@ -10,10 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
+- `ReferenceDirections.TwoLayerDasDennis`: outer Das–Dennis layer plus an inside layer scaled toward the centroid (Deb & Jain, NSGA-III Part I; default scale 0.5). Duplicates are removed. Single-layer `DasDennis` / `WithDasDennis` stays the default. M≤3 oracles do not need the second layer.
+- Constrained problems `OsyProblem`, `TnkProblem`, and `C1Dtlz1Problem`, with formulation and survival self-tests. No IGD table.
 
 ### Changed
 
+- Environmental selection follows pymoo `Survival.filter_infeasible` (Jain & Deb, NSGA-III Part II). Feasible members are niched. If fewer than N are feasible, the rest are filled by ascending constraint violation and are not assigned a niche. When any member is feasible, ideal, worst, and ASF extremes come from feasible objectives. An all-infeasible generation does not move the hyperplane. This replaces the locked whole-pool ideal fixture.
 - Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
+
+### Fixed
+
+- `CompareConstraintDominated` no longer falls through to Pareto when two infeasible individuals share a constraint violation. Deb's constraint-domination leaves them mutually non-dominated. Tournament comparators are unchanged.
 
 ## [0.1.5] — 2026-09-22
 

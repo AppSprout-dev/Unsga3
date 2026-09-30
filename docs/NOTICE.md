@@ -12,7 +12,8 @@ It is **not** affiliated with, endorsed by, or derived from the source code of p
 | Work | Role in Unsga3 |
 |------|----------------|
 | Seada, H. & Deb, K. (2016). *A Unified Evolutionary Optimization Procedure for Single, Multiple, and Many Objectives.* IEEE TEVC. | U-NSGA-III algorithm |
-| Deb, K. & Jain, H. (2014). *NSGA-III.* IEEE TEVC. | Reference-point survival, hyperplane normalization |
+| Deb, K. & Jain, H. (2014). *An Evolutionary Many-Objective Optimization Algorithm Using Reference-Point-Based Nondominated Sorting Approach, Part I: Solving Problems With Box Constraints.* IEEE TEVC. | Reference directions (including the inside layer), hyperplane normalization, niching |
+| Jain, H. & Deb, K. (2014). *An Evolutionary Many-Objective Optimization Algorithm Using Reference-Point-Based Nondominated Sorting Approach, Part II: Handling Constraints and Extending to an Adaptive Approach.* IEEE TEVC. | Feasible-only niching and constraint-violation fill |
 | Das, I. & Dennis, J. E. (1998). *Normal-Boundary Intersection.* SIAM J. Optim. | Das–Dennis reference directions |
 | Deb, K. et al. ZDT / DTLZ suites | Standard test problems |
 | Deb & Agrawal — SBX; Deb et al. — polynomial mutation | Variation operators |
