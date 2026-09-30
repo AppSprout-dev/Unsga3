@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
 - `ReferenceDirections.TwoLayerDasDennis`: outer Das–Dennis layer plus an inside layer scaled toward the centroid (Deb & Jain, NSGA-III Part I; default scale 0.5). Duplicates are removed. Single-layer `DasDennis` / `WithDasDennis` stays the default. M≤3 oracles do not need the second layer.
 - Constrained problems `OsyProblem`, `TnkProblem`, and `C1Dtlz1Problem`, with formulation and survival self-tests. No IGD table.
+- Opt-in `MatingPoolMode.TwoShuffledPasses`: two shuffled passes of consecutive tournaments (Seada & Deb Algorithm 1 and pymoo 0.6.2 `TournamentSelection`, pressure 2). When N parents are drawn from N members, each member is a contestant twice. The default pool stays N independent tournaments with replacement, which is the published ZDT1 Wilcoxon protocol.
+- Opt-in `TournamentMode.Algorithm2`: a same-niche perpendicular-distance tie keeps the second parent. `PymooCompatible` still coin-flips. `RankNicheDistance` is unchanged.
 
 ### Changed
 
@@ -21,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - `CompareConstraintDominated` no longer falls through to Pareto when two infeasible individuals share a constraint violation. Deb's constraint-domination leaves them mutually non-dominated. Tournament comparators are unchanged.
+- Odd population sizes no longer skip `parents[N-1]` in SBX. The leftover parent is paired with parent 0. Even-N pair order is unchanged (ZDT1 pop 52, DTLZ2 pop 92).
 
 ## [0.1.5] — 2026-09-22
 

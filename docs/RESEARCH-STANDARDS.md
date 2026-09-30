@@ -45,9 +45,11 @@ Default dimensions (Deb / pymoo convention):
 
 **pymoo** `comp_by_rank_and_ref_line_dist` follows that same-niche / different-niche split and coin-flips a distance tie. pymoo `NSGA3` builds `SBX(eta=30, prob=1.0)`.
 
-**`TournamentMode.PymooCompatible`** matches that pymoo comparator, including the coin flip. It does not use the paper's second-parent tie break, p_c = 0.9, or the consecutive-pair mating pool.
+**`TournamentMode.PymooCompatible`** matches that pymoo comparator, including the coin flip. It does not use the paper's second-parent tie break or p_c = 0.9. The consecutive-pair mating pool is a separate opt-in (`MatingPoolMode.TwoShuffledPasses`), not this mode.
 
-**`TournamentMode.RankNicheDistance`** is the constructor default: rank, then niche count, then perpendicular distance, including when the niches differ. That is a local expansion, not Algorithm 2. The default stays `RankNicheDistance`. ZDT1's published Wilcoxon table uses it.
+**`TournamentMode.RankNicheDistance`** is the constructor default: rank, then niche count, then perpendicular distance, including when the niches differ. That is a local expansion, not Algorithm 2. The default stays `RankNicheDistance`. ZDT1's published Wilcoxon table uses it, with the default independent-with-replacement pool.
+
+**`TournamentMode.Algorithm2`** (opt-in) keeps the second parent on a same-niche distance tie. **`MatingPoolMode.TwoShuffledPasses`** (opt-in) is pymoo 0.6.2's permutation tournament: two shuffled passes, consecutive pairs, each member a contestant twice when selecting N parents. Neither replaces the published ZDT1 defaults.
 
 ## 3. Performance indicators (what to report)
 

@@ -21,6 +21,7 @@ public sealed class Unsga3Algorithm
     private readonly double? _mutationProbability;
     private readonly int? _seed;
     private readonly TournamentMode _tournamentMode;
+    private readonly MatingPoolMode _matingPool;
     private readonly bool _eliminateDuplicates;
 
     /// <param name="referenceDirections">Das–Dennis (or custom) directions; one weight vector per niche.</param>
@@ -33,13 +34,22 @@ public sealed class Unsga3Algorithm
     /// </param>
     /// <param name="mutationProbability">Per-variable mutation probability; default 1/nVars at run time.</param>
     /// <param name="seed">Optional RNG seed for reproducibility.</param>
-    /// <param name="tournamentMode">Mating tournament policy; use <see cref="TournamentMode.PymooCompatible"/> for oracle runs.</param>
+    /// <param name="tournamentMode">
+    /// Mating tournament policy. Default <see cref="TournamentMode.RankNicheDistance"/>.
+    /// Use <see cref="TournamentMode.PymooCompatible"/> for oracle runs.
+    /// <see cref="TournamentMode.Algorithm2"/> keeps the second parent on a same-niche distance tie.
+    /// </param>
     /// <param name="eliminateDuplicates">
     /// Drop offspring whose decision vector matches an existing parent or earlier offspring
     /// (pymoo <c>eliminate_duplicates=True</c>). Default true. The key is <c>G12</c>
     /// (12 significant digits), not 12 digits after the decimal. If mutation cannot
     /// produce a new key, attempts are capped and the remaining slots may be duplicates
     /// so the loop cannot hang.
+    /// </param>
+    /// <param name="matingPool">
+    /// How parents are drawn. Default <see cref="MatingPoolMode.IndependentWithReplacement"/>
+    /// (published ZDT1 Wilcoxon). <see cref="MatingPoolMode.TwoShuffledPasses"/> is the
+    /// Seada &amp; Deb Algorithm 1 / pymoo 0.6.2 permutation tournament and is opt-in.
     /// </param>
     public Unsga3Algorithm(
         double[][] referenceDirections,
@@ -50,7 +60,8 @@ public sealed class Unsga3Algorithm
         double? mutationProbability = null,
         int? seed = null,
         TournamentMode tournamentMode = TournamentMode.RankNicheDistance,
-        bool eliminateDuplicates = true)
+        bool eliminateDuplicates = true,
+        MatingPoolMode matingPool = MatingPoolMode.IndependentWithReplacement)
     {
         ArgumentNullException.ThrowIfNull(referenceDirections);
         if (referenceDirections.Length < 1)
@@ -69,6 +80,7 @@ public sealed class Unsga3Algorithm
         _mutationProbability = mutationProbability;
         _seed = seed;
         _tournamentMode = tournamentMode;
+        _matingPool = matingPool;
         _eliminateDuplicates = eliminateDuplicates;
     }
 
@@ -86,10 +98,16 @@ public sealed class Unsga3Algorithm
         int partitions,
         int? populationSize = null,
         int? seed = null,
-        TournamentMode tournamentMode = TournamentMode.RankNicheDistance)
+        TournamentMode tournamentMode = TournamentMode.RankNicheDistance,
+        MatingPoolMode matingPool = MatingPoolMode.IndependentWithReplacement)
     {
         var dirs = ReferenceDirections.DasDennis(numberOfObjectives, partitions);
-        return new Unsga3Algorithm(dirs, populationSize, seed: seed, tournamentMode: tournamentMode);
+        return new Unsga3Algorithm(
+            dirs,
+            populationSize,
+            seed: seed,
+            tournamentMode: tournamentMode,
+            matingPool: matingPool);
     }
 
     public OptimizationResult Run(IProblem problem, int maxGenerations) =>
@@ -128,7 +146,7 @@ public sealed class Unsga3Algorithm
         // across generations (pymoo HyperplaneNormalization). Survival reuses the same
         // instance so tournament prep and environmental selection stay consistent.
         var normalization = new Normalization(problem.NumberOfObjectives);
-        var tournament = new TournamentSelection(_tournamentMode);
+        var tournament = new TournamentSelection(_tournamentMode, _matingPool);
         var survival = new NondominatedSortingSurvival(refs, normalization);
         double mutProb = _mutationProbability ?? (1.0 / problem.NumberOfVariables);
 
@@ -166,7 +184,7 @@ public sealed class Unsga3Algorithm
         return new OptimizationResult(population.Members.ToList(), generation, evaluations);
     }
 
-    private List<Individual> CreateOffspring(
+    internal List<Individual> CreateOffspring(
         IProblem problem,
         IReadOnlyList<Individual> currentPop,
         IReadOnlyList<Individual> parents,
@@ -189,10 +207,12 @@ public sealed class Unsga3Algorithm
         while (offspring.Count < _populationSize && safety < maxAttempts)
         {
             safety++;
-            if (pair + 1 >= parents.Count)
-                pair = 0;
-            var (c1, c2) = _crossover.Crossover(parents[pair], parents[pair + 1], problem, rng);
-            pair += 2;
+            // Even N: (0,1), (2,3), … then wrap to (0,1). That sequence is what the
+            // published even populations (ZDT1 52, DTLZ2 92) already used. Odd N used
+            // to wrap before reading the last index, so parents[N-1] never entered SBX.
+            (int left, int right, int next) = AdvanceMatingPair(pair, parents.Count);
+            pair = next;
+            var (c1, c2) = _crossover.Crossover(parents[left], parents[right], problem, rng);
             _mutation.Mutate(c1, problem, rng, mutProb);
             _mutation.Mutate(c2, problem, rng, mutProb);
 
@@ -223,6 +243,26 @@ public sealed class Unsga3Algorithm
         }
 
         return offspring;
+    }
+
+    /// <summary>
+    /// Next SBX pair and the cursor after it.
+    /// Even <paramref name="parentCount"/> yields consecutive pairs and wraps from
+    /// <c>parentCount</c> back to <c>(0, 1)</c> with no extra draw.
+    /// Odd counts pair the leftover last parent with parent 0, then restart at 0.
+    /// </summary>
+    internal static (int Left, int Right, int Next) AdvanceMatingPair(int pair, int parentCount)
+    {
+        if (parentCount < 2)
+            throw new ArgumentOutOfRangeException(nameof(parentCount), "Need at least two parents to cross.");
+
+        if (pair >= parentCount)
+            pair = 0;
+
+        if (pair + 1 < parentCount)
+            return (pair, pair + 1, pair + 2);
+
+        return (pair, 0, 0);
     }
 
     private static void TryAddOffspring(List<Individual> offspring, Individual child, HashSet<string>? seen)

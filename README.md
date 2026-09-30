@@ -77,7 +77,8 @@ var algo = new Unsga3Algorithm(dirs, populationSize: 92, seed: 1,
 | `ReferenceDirections.TwoLayerDasDennis` | Outer layer plus an inside layer for larger M |
 | `SimulatedBinaryCrossover` / `PolynomialMutation` | Variation operators |
 | `PerformanceIndicators` | IGD, GD, 2-D hypervolume |
-| `TournamentMode` | Default rank→niche vs `PymooCompatible` |
+| `TournamentMode` | Default rank→niche, `PymooCompatible` (distance-tie coin flip), or opt-in `Algorithm2` (keep the second parent) |
+| `MatingPoolMode` | Default independent tournaments; opt-in `TwoShuffledPasses` (paper / pymoo 0.6.2) |
 
 Built-in problems: ZDT1–4/6, DTLZ1–4/7, Sphere, Ackley, Rosenbrock, and constrained OSY, TNK, and C1-DTLZ1 (self-tests only; no IGD table yet).
 
