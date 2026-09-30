@@ -64,9 +64,11 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Item | This library | pymoo |
 |------|--------------|-------|
 | Tournament (default `RankNicheDistance`) | rank → niche count → dist, including across niches | not Algorithm 2 |
-| Tournament (`PymooCompatible`) | same niche → rank then dist; else random; distance tie is a coin flip | `comp_by_rank_and_ref_line_dist` (paper keeps the second parent on a distance tie) |
+| Tournament (`PymooCompatible`) | same niche → rank then dist; else random; distance tie is a coin flip | `comp_by_rank_and_ref_line_dist` |
+| Tournament (`Algorithm2`, opt-in) | same rules as `PymooCompatible`, except a same-niche distance tie keeps the second parent | paper Algorithm 2. Not pymoo's coin flip, and not the default |
 | SBX p_c | **1.0** (pymoo `SBX(prob=1.0)`) | paper section 4 uses **0.9** |
-| Mating pool | N independent tournaments with replacement | two shuffled consecutive-pair passes |
+| Mating pool (default) | N independent tournaments with replacement. This is the published ZDT1 Wilcoxon protocol | not the pymoo pool |
+| Mating pool (`TwoShuffledPasses`, opt-in) | two shuffled passes of consecutive pairs. When N parents are drawn from N members, each index is a contestant twice | pymoo 0.6.2 `TournamentSelection` (pressure 2) **is** this pool: `n_perms = ceil(2N / N)` permutations, then consecutive pairs |
 | Niche ids at mating | `PrepareForSelection` re-normalizes survivors and re-associates | ids written during survival are kept |
 | `WithDasDennis(1, 1)` | throws. One objective has a single direction, and N must be ≥ 2 | pass `populationSize` ≥ 2 for the single-objective degeneration |
 | Reference layers | single-layer Das–Dennis only. Two-layer directions are absent | many-objective NSGA-III adds an inside layer for larger M |
@@ -77,6 +79,16 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Hyperplane norm | persistent ideal, ND extremes, correct ASF | `HyperplaneNormalization` |
 | Collapsed nadir | if the span is still ≤ 1e-6, nadir = ideal + 1 | stop at worst-of-population |
 | Infeasible points in the hyperplane | ideal and worst from the whole pool, including infeasible points. ASF extremes use the ND index set when supplied | pymoo niching can restrict the normalized set to feasible members |
+
+## Mating pool
+
+The default pool is **N independent tournaments with replacement**, together with `RankNicheDistance`. That combination is the published ZDT1 Wilcoxon protocol. A two-pass run is not that table.
+
+pymoo 0.6.2 `TournamentSelection` (`pressure=2`) **is** the two-shuffled-pass pool, not a third scheme. Selecting N parents from N members uses `n_perms = ceil(2N / N) = 2` permutations and consecutive pairs, so each index is a contestant twice. `MatingPoolMode.TwoShuffledPasses` is that pool, opt-in. It does not change the default comparator. An odd population still uses two passes here. pymoo's mating loop instead asks for `ceil(N/2)` SBX pairs, which can draw a third permutation; that extra pass is not copied.
+
+`TournamentMode.Algorithm2` is the other opt-in: on a same-niche perpendicular-distance tie it keeps the second parent (Seada & Deb Algorithm 2) and does not draw. `PymooCompatible` still coin-flips that tie. Equal constraint violation stays a coin flip in both modes. Either comparator can be used with either pool.
+
+Odd N (Das–Dennis M=2, p=12 → 13; M=3, p=12 → 91): `CreateOffspring` pairs the leftover parent with parent 0, so `parents[N-1]` enters SBX, then the cursor restarts at 0. Even N stays consecutive pairs `(0,1), (2,3), …` and wraps to `(0,1)` with no extra random draw. Published ZDT1 (52) and DTLZ2 (92) are even, so their pair sequence is unchanged.
 
 ## DTLZ2 gap history
 

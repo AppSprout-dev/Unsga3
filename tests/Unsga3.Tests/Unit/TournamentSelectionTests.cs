@@ -151,4 +151,174 @@ public class TournamentSelectionTests
         // pymoo NSGA3/UNSGA3 uses SBX(prob=1.0). Seada & Deb section 4 uses pc = 0.9.
         Assert.Equal(1.0, new SimulatedBinaryCrossover().Probability);
     }
+
+    [Fact]
+    public void Defaults_stay_rank_niche_and_independent_pool()
+    {
+        var selection = new TournamentSelection();
+        Assert.Equal(TournamentMode.RankNicheDistance, selection.Mode);
+        Assert.Equal(MatingPoolMode.IndependentWithReplacement, selection.MatingPool);
+    }
+
+    [Fact]
+    public void Algorithm2_same_niche_distance_tie_keeps_the_second_parent()
+    {
+        var first = TiedNicheParents();
+        var second = TiedNicheParents();
+        for (int seed = 0; seed < 20; seed++)
+        {
+            var winner = TournamentSelection.Winner(
+                first, second, new RandomProvider(seed), TournamentMode.Algorithm2);
+            Assert.Same(second, winner);
+        }
+    }
+
+    [Fact]
+    public void Algorithm2_same_niche_still_prefers_the_shorter_distance()
+    {
+        var closer = TiedNicheParents();
+        var farther = TiedNicheParents();
+        farther.PerpendicularDistance = 0.8;
+        Assert.Same(closer, TournamentSelection.Winner(
+            closer, farther, new RandomProvider(0), TournamentMode.Algorithm2));
+        Assert.Same(closer, TournamentSelection.Winner(
+            farther, closer, new RandomProvider(0), TournamentMode.Algorithm2));
+    }
+
+    [Fact]
+    public void Algorithm2_equal_constraint_violation_stays_a_coin_flip()
+    {
+        var a = new Individual(1, 1, 1);
+        var b = new Individual(1, 1, 1);
+        a.Constraints[0] = 1.5;
+        b.Constraints[0] = 1.5;
+        a.RefreshConstraintViolation();
+        b.RefreshConstraintViolation();
+        a.Rank = b.Rank = 0;
+        a.AssociatedReference = b.AssociatedReference = 1;
+        a.PerpendicularDistance = b.PerpendicularDistance = 0.2;
+
+        int aWins = 0;
+        for (int seed = 0; seed < 40; seed++)
+        {
+            var winner = TournamentSelection.Winner(a, b, new RandomProvider(seed), TournamentMode.Algorithm2);
+            if (ReferenceEquals(winner, a)) aWins++;
+        }
+        Assert.InRange(aWins, 5, 35);
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(13)]
+    [InlineData(52)]
+    [InlineData(91)]
+    public void Two_shuffle_each_index_is_a_contestant_twice(int n)
+    {
+        for (int seed = 0; seed < 40; seed++)
+        {
+            int[] contests = TournamentSelection.BuildTwoShuffleContestants(n, n, new RandomProvider(seed));
+            Assert.Equal(n * 2, contests.Length);
+
+            var times = new int[n];
+            for (int i = 0; i < n; i++)
+            {
+                int a = contests[2 * i];
+                int b = contests[2 * i + 1];
+                Assert.NotEqual(a, b);
+                times[a]++;
+                times[b]++;
+            }
+            Assert.All(times, t => Assert.Equal(2, t));
+        }
+    }
+
+    [Fact]
+    public void Two_shuffle_select_parents_follows_the_contest_order()
+    {
+        const int n = 13;
+        const int seed = 7;
+        var population = RankedPopulation(n);
+        int[] contests = TournamentSelection.BuildTwoShuffleContestants(n, n, new RandomProvider(seed));
+        var selection = new TournamentSelection(
+            TournamentMode.RankNicheDistance,
+            MatingPoolMode.TwoShuffledPasses);
+        var parents = selection.SelectParents(population, n, new RandomProvider(seed));
+
+        Assert.Equal(n, parents.Count);
+        for (int i = 0; i < n; i++)
+        {
+            int expected = Math.Min(contests[2 * i], contests[2 * i + 1]);
+            Assert.Equal(expected, parents[i].Variables[0]);
+        }
+    }
+
+    [Fact]
+    public void Default_pool_stays_independent_draws_with_replacement()
+    {
+        const int n = 13;
+        const int seed = 4;
+        var population = RankedPopulation(n);
+        var rng = new RandomProvider(seed);
+        var expected = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            int a = rng.Next(n);
+            int b = rng.NextExcept(n, a);
+            expected[i] = Math.Min(a, b);
+        }
+
+        var parents = new TournamentSelection().SelectParents(population, n, new RandomProvider(seed));
+        for (int i = 0; i < n; i++)
+            Assert.Equal(expected[i], parents[i].Variables[0]);
+    }
+
+    [Fact]
+    public void Two_shuffle_algorithm2_distance_tie_keeps_the_second_contestant()
+    {
+        const int n = 8;
+        const int seed = 3;
+        var population = new List<Individual>(n);
+        for (int i = 0; i < n; i++)
+        {
+            var ind = TiedNicheParents();
+            ind.Variables[0] = i;
+            population.Add(ind);
+        }
+
+        int[] contests = TournamentSelection.BuildTwoShuffleContestants(n, n, new RandomProvider(seed));
+        var selection = new TournamentSelection(TournamentMode.Algorithm2, MatingPoolMode.TwoShuffledPasses);
+        var parents = selection.SelectParents(population, n, new RandomProvider(seed));
+        for (int i = 0; i < n; i++)
+            Assert.Equal(contests[2 * i + 1], parents[i].Variables[0]);
+    }
+
+    [Fact]
+    public void Short_odd_pool_still_pairs_distinct_contestants()
+    {
+        for (int seed = 0; seed < 30; seed++)
+        {
+            int[] contests = TournamentSelection.BuildTwoShuffleContestants(5, 3, new RandomProvider(seed));
+            Assert.Equal(6, contests.Length);
+            for (int i = 0; i < 3; i++)
+                Assert.NotEqual(contests[2 * i], contests[2 * i + 1]);
+        }
+    }
+
+    private static Individual TiedNicheParents() =>
+        new(1, 1)
+        {
+            Rank = 0,
+            AssociatedReference = 2,
+            PerpendicularDistance = 0.2,
+        };
+
+    private static List<Individual> RankedPopulation(int n)
+    {
+        var population = new List<Individual>(n);
+        for (int i = 0; i < n; i++)
+        {
+            population.Add(new Individual(new[] { (double)i }, 1) { Rank = i });
+        }
+        return population;
+    }
 }
