@@ -95,6 +95,39 @@ pymoo 0.6.2 `TournamentSelection` (`pressure=2`) **is** the two-shuffled-pass po
 
 Odd N (Das–Dennis M=2, p=12 → 13; M=3, p=12 → 91): `CreateOffspring` pairs the leftover parent with parent 0, so `parents[N-1]` enters SBX, then the cursor restarts at 0. Even N stays consecutive pairs `(0,1), (2,3), …` and wraps to `(0,1)` with no extra random draw. Published ZDT1 (52) and DTLZ2 (92) are even, so their pair sequence is unchanged.
 
+## New surfaces (constrained + mating opt-ins)
+
+Measured tables live in [NEW-SURFACES-RESULTS.md](NEW-SURFACES-RESULTS.md). They are written by `tools/oracle/run_new_surfaces.py`. [WILCOXON-RESULTS.md](WILCOXON-RESULTS.md) is not a target of that script. Package defaults stay `RankNicheDistance` and `IndependentWithReplacement`.
+
+Seeds are 1..15, the same indexes as the published ZDT1 and DTLZ2 tables. C# and pymoo do not share an RNG. Pairing is by seed index. Operators: SBX η=30, p_c=1, PM η=20, p_m=1/n, duplicate elimination on, single-layer Das–Dennis.
+
+### Constrained
+
+| Problem | M | n_var | Partitions | Pop | Gens | C# settings |
+|---------|---|------:|------------|----:|-----:|-------------|
+| OSY | 2 | 6 | 12 | 52 | 250 | constructor defaults |
+| TNK | 2 | 2 | 12 | 52 | 250 | constructor defaults |
+| C1-DTLZ1 | 3 | **7** (k=5) | 12 | 92 | 150 | constructor defaults |
+
+Pop and partitions follow the ZDT (M=2, pop=52) and DTLZ2 (M=3, pop=92) oracles. OSY and TNK use the ZDT2 quality generation count (250). C1-DTLZ1 uses the DTLZ2 generation count (150). `C1Dtlz1Problem` defaults to k=5. pymoo `get_problem("c1dtlz1")` defaults to n_var=12; the harness passes **n_var=7**.
+
+IGD is pymoo's mean nearest distance on the **feasible non-dominated subset of the final population**, both solvers, one shared reference front. OSY and TNK use pymoo's shipped front file. C1-DTLZ1 uses the DTLZ1 simplex at the same Das–Dennis partitions (the C1 inequality does not remove that front). `res.F` is a different set and is not the comparison. A seed with no feasible point is `skip:`, not a filled-in IGD.
+
+pymoo `UNSGA3` still uses its own tournament and two-shuffle pool. This is default Unsga3 against default pymoo, on a shared front. It is not a claim that the mating operators match.
+
+### Mating opt-ins
+
+Same populations and generation counts as the quality protocols above. ZDT1 gens=100, ZDT2 gens=250, DTLZ2 gens=150. IGD is the C# feasible non-dominated front against `ParetoFronts` (the published ZDT1 C# definition).
+
+| Column | Tournament | Pool |
+|--------|------------|------|
+| default | `RankNicheDistance` | `IndependentWithReplacement` |
+| two_shuffled | `RankNicheDistance` | `TwoShuffledPasses` |
+| algorithm2 | `Algorithm2` | `IndependentWithReplacement` |
+| both | `Algorithm2` | `TwoShuffledPasses` |
+
+The ZDT2 and DTLZ2 default columns in that table are `RankNicheDistance`. The published DTLZ2 Wilcoxon column is `PymooCompatible`. ZDT2 has no published Wilcoxon column. Neither published table is rewritten.
+
 ## DTLZ2 gap history
 
 | Stage | C# pymoo-mode IGD | vs pymoo 0.0035 |

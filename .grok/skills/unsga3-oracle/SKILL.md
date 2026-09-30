@@ -68,8 +68,18 @@ Checks sphere residual, niche occupancy, coverage vs true PF. Known historical r
 3. If algorithm code changed: `dotnet test Unsga3.slnx -c Release` must stay green.
 4. Do **not** commit `tools/oracle/out/*.csv` (gitignored).
 
+### 4. Constrained problems and mating opt-ins
+
+```powershell
+python tools/oracle/run_new_surfaces.py --seeds 15
+```
+
+Writes `docs/NEW-SURFACES-RESULTS.md`. Does **not** write `docs/WILCOXON-RESULTS.md`. C# defaults stay `RankNicheDistance` + `IndependentWithReplacement`. C1-DTLZ1 passes pymoo `n_var=7` (k=5). Every cell is measured or `skip:`.
+
 ## Do not
 
 - Claim bit-identical fronts (different RNG streams).
 - Tighten CI IGD bars without multi-seed evidence.
 - Run full n=15 when the user only asked for a smoke check.
+- Invent IGD, HV, or Wilcoxon numbers. A missing front or a seed with no feasible point is `skip:`.
+- Rewrite `docs/WILCOXON-RESULTS.md` from `run_new_surfaces.py` or from a mating-opt-in sweep.
