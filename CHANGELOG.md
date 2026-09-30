@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Measured 15-seed tables for OSY, TNK, and C1-DTLZ1 (feasible non-dominated IGD vs pymoo `UNSGA3`) and for mating opt-ins (`TwoShuffledPasses`, `Algorithm2`, and both) in `docs/NEW-SURFACES-RESULTS.md`. Protocol is in `docs/EQUIVALENCE.md`. Package defaults are unchanged. `docs/WILCOXON-RESULTS.md` is not rewritten.
 - Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
 
 ### Changed

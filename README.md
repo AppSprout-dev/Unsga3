@@ -8,7 +8,7 @@
 
 > **v0.2.0** — opt-in two-shuffle mating, Algorithm 2 tournament, odd-N pairing, feasible-only niching, equal-CV Deb fix, two-layer Das–Dennis, and OSY/TNK/C1-DTLZ1. Defaults stay unconstrained `RankNicheDistance`, independent mating, and single-layer Das–Dennis. The published 15-seed table is not rewritten.  
 > **15-seed IGD vs pymoo `UNSGA3`:** ZDT1 **median 0.053 vs 0.070** (MWU *p*≈0.05) compares the full C# non-dominated front with pymoo `res.F`. DTLZ2 **median 0.0045 vs 0.0028** (~1.6×) compares C# n_var=12 with pymoo's default n_var=10. Neither pair is a same-set, same-problem ranking. Notes: [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md).  
-> Details: [`docs/WILCOXON-RESULTS.md`](docs/WILCOXON-RESULTS.md) · single-seed notes: [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md)
+> Details: [`docs/WILCOXON-RESULTS.md`](docs/WILCOXON-RESULTS.md) · single-seed notes: [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md) · constrained + mating opt-ins: [`docs/NEW-SURFACES-RESULTS.md`](docs/NEW-SURFACES-RESULTS.md)
 
 ```text
 https://github.com/AppSprout-dev/Unsga3
@@ -123,6 +123,7 @@ API docs used: [HTTP](https://docs.typesafe.ai/api.md) · [Python SDK](https://d
 |-----|----------|
 | [docs/ORACLE-RESULTS.md](docs/ORACLE-RESULTS.md) | Single-seed C# vs pymoo |
 | [docs/WILCOXON-RESULTS.md](docs/WILCOXON-RESULTS.md) | Multi-seed Mann–Whitney / Wilcoxon |
+| [docs/NEW-SURFACES-RESULTS.md](docs/NEW-SURFACES-RESULTS.md) | 15-seed constrained IGD and mating opt-ins |
 | [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) | Protocol & intentional deltas (ZDT2 quality A/B = gens=250, `PymooCompatible`; matches unsga3-bend) |
 | [docs/RESEARCH-STANDARDS.md](docs/RESEARCH-STANDARDS.md) | Literature + indicator standards |
 | [docs/NOTICE.md](docs/NOTICE.md) | Attribution (papers + validation tools) |

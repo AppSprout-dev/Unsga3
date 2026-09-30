@@ -19,7 +19,7 @@ Sources consulted (2026-08):
 | Bi-objective | ZDT1–4, ZDT6 | Convex / non-convex / disconnected / multimodal / biased density |
 | Many-objective | DTLZ1–4, DTLZ7 | Linear simplex, sphere, multimodal sphere, bias, disconnected |
 | Hard (later) | WFG1–9 | Non-separable, scaled, deceptive |
-| Constrained | OSY, TNK, C1-DTLZ1 | In the library, with survival self-tests. No IGD table until measured runs exist |
+| Constrained | OSY, TNK, C1-DTLZ1 | In the library. 15-seed IGD vs pymoo is in [NEW-SURFACES-RESULTS.md](NEW-SURFACES-RESULTS.md) |
 
 **Seada selection paper** stresses ZDT4 (many local fronts) and DTLZ1 for M=3,5.
 
@@ -100,4 +100,4 @@ Export path: dump final `F` as CSV from both sides; compute IGD in this library.
 - Fixed-seed smoke IGD bounds (loose) + unit metric tests against hand-checked values  
 - GitHub Packages publish workflow  
 
-WFG + constrained + automated pymoo bridge remain follow-ons.
+WFG and a fuller automated pymoo bridge remain follow-ons. Constrained IGD for OSY, TNK, and C1-DTLZ1 is recorded in [NEW-SURFACES-RESULTS.md](NEW-SURFACES-RESULTS.md).
