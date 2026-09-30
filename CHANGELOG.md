@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
+
+### Changed
+
+- Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
+
+## [0.2.0] — 2026-09-30
+
+Mating and constraints plus two-layer references. **Defaults stay unconstrained `RankNicheDistance`, independent mating, and single-layer `DasDennis`.** No new IGD or Wilcoxon table.
+
+### Added
+
 - `ReferenceDirections.TwoLayerDasDennis`: outer Das–Dennis layer plus an inside layer scaled toward the centroid (Deb & Jain, NSGA-III Part I; default scale 0.5). Duplicates are removed. Single-layer `DasDennis` / `WithDasDennis` stays the default. M≤3 oracles do not need the second layer.
 - Constrained problems `OsyProblem`, `TnkProblem`, and `C1Dtlz1Problem`, with formulation and survival self-tests. No IGD table.
 - Opt-in `MatingPoolMode.TwoShuffledPasses`: two shuffled passes of consecutive tournaments (Seada & Deb Algorithm 1 and pymoo 0.6.2 `TournamentSelection`, pressure 2). When N parents are drawn from N members, each member is a contestant twice. The default pool stays N independent tournaments with replacement, which is the published ZDT1 Wilcoxon protocol.
@@ -18,7 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Environmental selection follows pymoo `Survival.filter_infeasible` (Jain & Deb, NSGA-III Part II). Feasible members are niched. If fewer than N are feasible, the rest are filled by ascending constraint violation and are not assigned a niche. When any member is feasible, ideal, worst, and ASF extremes come from feasible objectives. An all-infeasible generation does not move the hyperplane. This replaces the locked whole-pool ideal fixture.
-- Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
 
 ### Fixed
 
@@ -101,7 +111,8 @@ Forensic-audit wave (G1–G10): document known gaps against pymoo and Seada & De
 - Benchmarks: ZDT1–4/6, DTLZ1–4/7, Sphere / Ackley / Rosenbrock
 - Metrics: IGD, GD, 2-D HV; self-tests + GitHub Packages publish workflow
 
-[Unreleased]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/AppSprout-dev/Unsga3/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.5...v0.2.0
 [0.1.5]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.2...v0.1.3
