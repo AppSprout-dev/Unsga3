@@ -63,6 +63,26 @@ PUBLISHED_ZDT1_CSHARP_G6 = {
     15: "0.048006",
 }
 
+# Published DTLZ2 Unsga3 column is PymooCompatible, not Algorithm2.
+# Compared only as a G6 string check. The published file is not rewritten.
+PUBLISHED_DTLZ2_PYMOO_COMPAT_G6 = {
+    1: "0.00403168",
+    2: "0.005666",
+    3: "0.00513016",
+    4: "0.00477695",
+    5: "0.00466321",
+    6: "0.00545999",
+    7: "0.00361016",
+    8: "0.00511116",
+    9: "0.0046699",
+    10: "0.00381559",
+    11: "0.00397447",
+    12: "0.00451168",
+    13: "0.00398436",
+    14: "0.00417245",
+    15: "0.00362671",
+}
+
 
 @dataclass(frozen=True)
 class ConstrainedProtocol:
@@ -328,8 +348,8 @@ def hypothesis(
         if isinstance(p, float) and math.isnan(p):
             return "skip: undefined"
         if p < 0.05:
-            return f"reject H0 (better median = {better})"
-        return "fail to reject H0"
+            return f"reject H₀ (better median = {better})"
+        return "fail to reject H₀"
 
     ratio = left_med / right_med if right_med != 0.0 else float("nan")
     return {
@@ -409,15 +429,22 @@ def measure_constrained(names: list[str], seeds: list[int]) -> dict:
         for entry in per_seed:
             print(f"  py  seed={entry['seed']} ...", end=" ", flush=True)
             pymoo_row = run_pymoo_constrained(proto, entry["seed"], pf)
-            if pymoo_row["n_var"] != proto.n_var:
+            repeat = run_pymoo_constrained(proto, entry["seed"], pf)
+            if pymoo_row["n_var"] != proto.n_var or repeat["n_var"] != proto.n_var:
                 raise RuntimeError(f"{name}: pymoo ran n_var={pymoo_row['n_var']}")
             entry["pymoo_igd"] = pymoo_row["igd"]
             entry["pymoo_n"] = pymoo_row["n"]
             entry["pymoo_feasible"] = pymoo_row["feasible"]
             entry["pymoo_resf_igd"] = pymoo_row["resf_igd"]
             entry["pymoo_resf_n"] = pymoo_row["resf_n"]
+            entry["pymoo_igd_repeat"] = repeat["igd"]
+            entry["pymoo_resf_igd_repeat"] = repeat["resf_igd"]
+            entry["pymoo_repeat_match"] = (
+                pymoo_row["igd"] == repeat["igd"] and pymoo_row["resf_igd"] == repeat["resf_igd"]
+            )
             shown = "skip" if pymoo_row["igd"] is None else fmt(pymoo_row["igd"])
-            print(f"fair_igd={shown} n={pymoo_row['n']}", flush=True)
+            flag = "" if entry["pymoo_repeat_match"] else " repeat-differs"
+            print(f"fair_igd={shown} n={pymoo_row['n']}{flag}", flush=True)
 
         left, right, skipped = paired_or_skip(per_seed, "csharp_igd", "pymoo_igd")
         tests = None
@@ -435,6 +462,8 @@ def measure_constrained(names: list[str], seeds: list[int]) -> dict:
                     "das-dennis", proto.n_obj, n_partitions=proto.partitions
                 ))),
                 "pf_points": int(pf.shape[0]),
+                "pf_min": [float(v) for v in pf.min(axis=0)],
+                "pf_max": [float(v) for v in pf.max(axis=0)],
                 "csharp_tournament": "RankNicheDistance",
                 "csharp_mating": "IndependentWithReplacement",
                 "pymoo_algorithm": "UNSGA3",
@@ -449,6 +478,22 @@ def measure_constrained(names: list[str], seeds: list[int]) -> dict:
         }
         blocks[name] = block
     return blocks
+
+
+def g6_check(rows: list[dict], expected: dict[int, str], compared_to: str) -> dict:
+    mismatches = []
+    for row in rows:
+        published = expected[row["seed"]]
+        if row["igd_g6"] != published:
+            mismatches.append(
+                {"seed": row["seed"], "measured_g6": row["igd_g6"], "published_g6": published}
+            )
+    return {
+        "compared_to": compared_to,
+        "n_match": len(rows) - len(mismatches),
+        "n_seeds": len(rows),
+        "mismatches": mismatches,
+    }
 
 
 def measure_mating(names: list[str], seeds: list[int]) -> dict:
@@ -486,21 +531,24 @@ def measure_mating(names: list[str], seeds: list[int]) -> dict:
             right = [float(row["igd"]) for row in default_rows]
             comparisons[key] = hypothesis(left, right, left_name=key, right_name="default")
 
-        published_check = None
-        if name == "zdt1" and seeds == list(range(1, 16)):
-            mismatches = []
-            for row in default_rows:
-                expected = PUBLISHED_ZDT1_CSHARP_G6[row["seed"]]
-                if row["igd_g6"] != expected:
-                    mismatches.append(
-                        {"seed": row["seed"], "measured_g6": row["igd_g6"], "published_g6": expected}
-                    )
-            published_check = {
-                "compared_to": "docs/WILCOXON-RESULTS.md ZDT1 Unsga3 column",
-                "n_match": len(seeds) - len(mismatches),
-                "n_seeds": len(seeds),
-                "mismatches": mismatches,
-            }
+        published_checks = []
+        if seeds == list(range(1, 16)) and name == "zdt1":
+            published_checks.append(
+                g6_check(
+                    default_rows,
+                    PUBLISHED_ZDT1_CSHARP_G6,
+                    "default column vs docs/WILCOXON-RESULTS.md ZDT1 Unsga3 column",
+                )
+            )
+        if seeds == list(range(1, 16)) and name == "dtlz2":
+            published_checks.append(
+                g6_check(
+                    columns["algorithm2"],
+                    PUBLISHED_DTLZ2_PYMOO_COMPAT_G6,
+                    "algorithm2 column vs docs/WILCOXON-RESULTS.md DTLZ2 Unsga3 column "
+                    "(that column is PymooCompatible, not Algorithm2)",
+                )
+            )
 
         per_seed = []
         for index, seed in enumerate(seeds):
@@ -527,7 +575,7 @@ def measure_mating(names: list[str], seeds: list[int]) -> dict:
                 for key, _, _ in MATING_CONFIGS
             },
             "versus_default": comparisons,
-            "published_zdt1_g6_check": published_check,
+            "published_g6_checks": published_checks,
         }
     return blocks
 
@@ -604,7 +652,9 @@ def markdown_report(payload: dict) -> str:
         "C# constructor defaults are not pymoo's mating. pymoo `UNSGA3` uses "
         "`comp_by_rank_and_ref_line_dist` and two shuffled tournament passes. "
         "The table is default Unsga3 against default pymoo UNSGA3 on a shared front definition. "
-        "It is not a mating-matched ablation. The mating section is that ablation, on unconstrained problems.",
+        "It is not a mating-matched ablation. The mating section is that ablation, on unconstrained problems. "
+        "Each pymoo seed is run twice. The table is the first run. A second value is listed only when it differs. "
+        "The two runs are not averaged.",
         "",
         "`pymoo res.F` is reported in its own column. It is the survival result, not the feasible "
         "non-dominated population, and it is not an input to the hypothesis tests.",
@@ -654,6 +704,11 @@ def markdown_report(payload: dict) -> str:
         lines.append(f"- C#: {summary_cells(block['csharp_summary'])}")
         lines.append(f"- pymoo feasible ND: {summary_cells(block['pymoo_summary'])}")
         lines.append(f"- Unpaired skips: {block['n_skipped_pairs']}")
+        p = block["protocol"]
+        lines.append(
+            "- Reference front: "
+            f"n={p['pf_points']} min={fmt_vec(p['pf_min'])} max={fmt_vec(p['pf_max'])}"
+        )
         tests = block["tests"]
         if tests is None:
             lines.append("- Hypothesis tests: skip: fewer than 5 paired feasible seeds")
@@ -678,6 +733,26 @@ def markdown_report(payload: dict) -> str:
             lines.append(
                 f"| {row['seed']} | {cell(row['csharp_igd'])} | {cell(row['pymoo_igd'])} | "
                 f"{cell(row['pymoo_resf_igd'])} | {row['csharp_n']} | {row['pymoo_n']} |"
+            )
+        lines.append("")
+        diffs = [row for row in block["seeds"] if not row.get("pymoo_repeat_match", True)]
+        if diffs:
+            lines.append(
+                "A second pymoo run of the same seed is not always bit-identical on this host "
+                "(SciPy OpenBLAS, dynamic threads). The table cell is the first run. "
+                "The second run differed for:"
+            )
+            for row in diffs:
+                lines.append(
+                    f"- seed {row['seed']} feasible ND: table {cell(row['pymoo_igd'])}, "
+                    f"repeat {cell(row['pymoo_igd_repeat'])}; "
+                    f"res.F: table {cell(row['pymoo_resf_igd'])}, "
+                    f"repeat {cell(row['pymoo_resf_igd_repeat'])}"
+                )
+            lines.append("The two runs are not averaged. Hypothesis tests use the table column.")
+        else:
+            lines.append(
+                "A second pymoo run of each seed matched the table cell (feasible ND and res.F)."
             )
         lines.append("")
 
@@ -709,11 +784,11 @@ def markdown_report(payload: dict) -> str:
                     f"{fmt(tests['median_ratio'])} | {tests['better_median']} |"
                 )
             lines.append("")
-        check = block["published_zdt1_g6_check"]
-        if check is not None:
+        for check in block["published_g6_checks"]:
             if check["mismatches"]:
                 lines.append(
-                    f"Published ZDT1 C# G6 check: {check['n_match']}/{check['n_seeds']} match. "
+                    f"Published G6 check ({check['compared_to']}): "
+                    f"{check['n_match']}/{check['n_seeds']} match. "
                     "Mismatches (measured, published): "
                     + ", ".join(
                         f"seed {item['seed']} {item['measured_g6']} vs {item['published_g6']}"
@@ -723,8 +798,8 @@ def markdown_report(payload: dict) -> str:
                 )
             else:
                 lines.append(
-                    f"Published ZDT1 C# G6 check: {check['n_match']}/{check['n_seeds']} match "
-                    "`docs/WILCOXON-RESULTS.md`. That file was not rewritten."
+                    f"Published G6 check ({check['compared_to']}): "
+                    f"{check['n_match']}/{check['n_seeds']} match. The published file was not rewritten."
                 )
             lines.append("")
         header = "| Seed | " + " | ".join(key for key, _, _ in MATING_CONFIGS) + " |"
@@ -744,6 +819,10 @@ def markdown_report(payload: dict) -> str:
         "",
     ]
     return "\n".join(lines) + "\n"
+
+
+def fmt_vec(values: list[float]) -> str:
+    return "[" + ", ".join(fmt(v) for v in values) + "]"
 
 
 def cell(value: object) -> str:

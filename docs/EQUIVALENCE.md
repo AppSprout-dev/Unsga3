@@ -45,13 +45,13 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 | Bi | ZDT1–4, ZDT6 | 2 | yes |
 | Many | DTLZ1–4, DTLZ7 | 3+ | yes |
 | Hard | WFG1, WFG2, WFG9 | 3–5 | planned |
-| Constrained | OSY, TNK, C1-DTLZ1 | 2–3 | yes (self-tests; no IGD table) |
+| Constrained | OSY, TNK, C1-DTLZ1 | 2–3 | yes (self-tests; 15-seed IGD in [NEW-SURFACES-RESULTS.md](NEW-SURFACES-RESULTS.md)) |
 
 ## Unit checks
 
 - Reference association & niche counts  
 - Non-dominated ranks / constraint domination (equal CV is mutual non-domination)  
-- Feasible niching, CV fill, and OSY / TNK / C1-DTLZ1 (`ConstrainedSurvivalTests`, `ConstrainedProblemTests`). No IGD table.  
+- Feasible niching, CV fill, and OSY / TNK / C1-DTLZ1 (`ConstrainedSurvivalTests`, `ConstrainedProblemTests`). Multi-seed IGD is in [NEW-SURFACES-RESULTS.md](NEW-SURFACES-RESULTS.md).  
 - **Normalization intercepts / ASF axis extremes** (`NormalizationTests`)  
 - Tournament pressure  
 - `populationSize: null` ⇒ `|refs|`  
@@ -113,7 +113,7 @@ Pop and partitions follow the ZDT (M=2, pop=52) and DTLZ2 (M=3, pop=92) oracles.
 
 IGD is pymoo's mean nearest distance on the **feasible non-dominated subset of the final population**, both solvers, one shared reference front. OSY and TNK use pymoo's shipped front file. C1-DTLZ1 uses the DTLZ1 simplex at the same Das–Dennis partitions (the C1 inequality does not remove that front). `res.F` is a different set and is not the comparison. A seed with no feasible point is `skip:`, not a filled-in IGD.
 
-pymoo `UNSGA3` still uses its own tournament and two-shuffle pool. This is default Unsga3 against default pymoo, on a shared front. It is not a claim that the mating operators match.
+pymoo `UNSGA3` still uses its own tournament and two-shuffle pool. This is default Unsga3 against default pymoo, on a shared front. It is not a claim that the mating operators match. A second pymoo run of the same seed is not always bit-identical with SciPy OpenBLAS. The results file keeps the first run in the table and lists the second run when it differs. The two values are not averaged.
 
 ### Mating opt-ins
 
