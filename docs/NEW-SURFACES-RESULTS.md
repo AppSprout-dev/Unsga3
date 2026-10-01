@@ -61,7 +61,7 @@ IGD is the C# feasible non-dominated front against `ParetoFronts` (ZDT: 500 poin
 | algorithm2 | Algorithm2 | IndependentWithReplacement |
 | both | Algorithm2 | TwoShuffledPasses |
 
-ZDT2 uses gens=250. Its default column is `RankNicheDistance`, not `PymooCompatible`. There is no published ZDT2 Wilcoxon column. DTLZ2's default column is also `RankNicheDistance`. The published DTLZ2 column is `PymooCompatible` and is not rewritten here.
+ZDT2 uses gens=250. Its default column is `RankNicheDistance`, not `PymooCompatible`. There is no published ZDT2 Wilcoxon column. DTLZ2's default column is also `RankNicheDistance`. The published DTLZ2 Wilcoxon column is `PymooCompatible` at n_var=12. This file does not rewrite it.
 
 Paired tests compare each opt-in with the default column (same seed index). Lower IGD is better. p-values are two-sided and not multiplicity-adjusted.
 

@@ -12,7 +12,7 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
 - [pymoo `UNSGA3`](https://pymoo.org/algorithms/moo/unsga3.html)  
 - pymoo `nsga3.py` — `HyperplaneNormalization`, `associate_to_niches`, `niching`  
 - pymoo `Survival.filter_infeasible` — feasible niching, then ascending-CV fill (Jain & Deb, NSGA-III Part II)  
-- Indicators: [pymoo performance indicators](https://pymoo.org/misc/indicators.html) (GD, IGD, IGD+, HV)
+- Indicators: [pymoo performance indicators](https://pymoo.org/misc/indicators.html) (GD, GD+, IGD, IGD+, HV)
 
 ## Protocol
 
@@ -24,7 +24,7 @@ See also **[RESEARCH-STANDARDS.md](RESEARCH-STANDARDS.md)** for the literature +
    Score the **same front definition** and the **same reference set**. C# reports the full non-dominated front. pymoo `res.F` is the survival niche set (about one point per filled direction). `ReferenceDirectionThinning.OnePerDirection` can match cardinality; it does not reproduce `res.F` and is not a parity claim.
 6. **Tolerance:** do not read the published table as median IGD within 1–2% of pymoo.
    ZDT1 median ratio 0.764107, Mann–Whitney U = 65, p = 0.0512394 (the pymoo column is `res.F`).
-   DTLZ2 median ratio 1.58638, U = 222, p = 6.15164×10⁻⁶ (the pymoo column is n_var=10). That comparison rejects equal distributions at α = 0.05.
+   DTLZ2 median ratio 1.16183, U = 168, p = 0.0225311 (both columns are n_var=12). That comparison rejects equal distributions at α = 0.05.
    The CI guard is 2× the published mismatched DTLZ2 scalar 0.00350, which fails a regression to about 2.9×. It is not a same-problem equivalence claim.
 
 Published A/B budgets (ZDT1 / DTLZ2 unchanged; ZDT2 matches unsga3-bend protocol honesty):
@@ -55,7 +55,7 @@ ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo),
 - **Normalization intercepts / ASF axis extremes** (`NormalizationTests`)  
 - Tournament pressure  
 - `populationSize: null` ⇒ `|refs|`  
-- IGD/HV formulas on hand-checked fronts (`MetricsTests`)  
+- IGD/GD/GD+/HV formulas on hand-checked fronts (`MetricsTests`)  
 
 ## Automated IGD smoke (CI)
 
@@ -126,7 +126,7 @@ Same populations and generation counts as the quality protocols above. ZDT1 gens
 | algorithm2 | `Algorithm2` | `IndependentWithReplacement` |
 | both | `Algorithm2` | `TwoShuffledPasses` |
 
-The ZDT2 and DTLZ2 default columns in that table are `RankNicheDistance`. The published DTLZ2 Wilcoxon column is `PymooCompatible`. ZDT2 has no published Wilcoxon column. Neither published table is rewritten.
+The ZDT2 and DTLZ2 default columns in that table are `RankNicheDistance`. The published DTLZ2 Wilcoxon column is `PymooCompatible` at n_var=12. ZDT2 has no published Wilcoxon column. `run_new_surfaces.py` does not write `docs/WILCOXON-RESULTS.md`.
 
 ## DTLZ2 gap history
 
@@ -136,4 +136,4 @@ The ZDT2 and DTLZ2 default columns in that table are `RankNicheDistance`. The pu
 | ASF + persistent ideal | 0.0052 | ~1.5× |
 | + duplicate elimination | **0.0040** | **~1.15× vs pymoo n_var=10** |
 
-The ~1.15× denominator is pymoo at **n_var=10** (k=8), not the C# problem (n_var=12, k=10). A matched seed-1 pair is recorded in [ORACLE-RESULTS.md](ORACLE-RESULTS.md). The 15-seed table is still the mismatched-k run.
+The ~1.15× denominator is pymoo at **n_var=10** (k=8), not the C# problem (n_var=12, k=10). That history row is not the current 15-seed table. The current table is the matched n_var=12 re-run in [WILCOXON-RESULTS.md](WILCOXON-RESULTS.md) (median ratio 1.16183). A matched seed-1 pair is also in [ORACLE-RESULTS.md](ORACLE-RESULTS.md).

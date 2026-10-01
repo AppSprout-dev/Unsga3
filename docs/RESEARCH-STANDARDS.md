@@ -27,7 +27,7 @@ Default dimensions (Deb / pymoo convention):
 
 - ZDT1–3: n=30; ZDT4: n=10; ZDT6: n=10  
 - DTLZ: n = M + k − 1 with k=5 (DTLZ1) or k=10 (DTLZ2–4), k=20 (DTLZ7)  
-- C# `Dtlz2Problem` uses that k=10, so M=3 ⇒ **n_var=12**. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k=8). Oracle runs pass `n_var=12`. The published 15-seed pymoo column is the default-10 run and is not a same-k comparison.
+- C# `Dtlz2Problem` uses that k=10, so M=3 ⇒ **n_var=12**. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k=8). Oracle runs pass `n_var=12`. The published 15-seed pymoo column is that matched re-run.
 
 ## 2. Algorithm hyperparameters (match paper + pymoo)
 
@@ -56,8 +56,9 @@ Default dimensions (Deb / pymoo convention):
 | Metric | Direction | Needs true PF? | Notes |
 |--------|-----------|----------------|-------|
 | **IGD** | ↓ | Yes | **Primary** — pymoo = **mean** nearest Euclidean distance (not √Σd²/n) |
-| **IGD+** | ↓ | Yes | Weakly Pareto compliant (Ishibuchi) |
-| **GD** | ↓ | Yes | Convergence only (can miss spread) |
+| **IGD+** | ↓ | Yes | Weakly Pareto compliant (Ishibuchi). Mean modified distance from each reference point to the nearest obtained point |
+| **GD** | ↓ | Yes | Convergence only (can miss spread). Mean Euclidean distance from each obtained point to the nearest reference point |
+| **GD+** | ↓ | Yes | Ishibuchi modified distance, same direction as GD. `max(a_j − z_j, 0)` so a weakly better point contributes 0 |
 | **HV** | ↑ | No (needs ref point) | Prefer when PF unknown; 2-D closed form here |
 
 Definitions implemented in `Unsga3.Metrics.PerformanceIndicators` follow **pymoo’s formulas** (p=2 Euclidean averages).
@@ -87,15 +88,15 @@ Typical ZDT: r = (1.1, 1.1). Always document r; never compare HV across differen
 5. Compare IGD (and HV for M=2) to pymoo `UNSGA3` on the **same front definition**. C# uses the full non-dominated front; pymoo's harness value is `res.F` (the niche optimum). A gap between those two reporters is a set-definition gap until both sides are reduced the same way.
 6. Shipping bar: the published 15-seed table is **not** “median IGD within ~1–2% of pymoo.”
    ZDT1: Mann–Whitney U = 65, p = 0.0512394, median ratio 0.764107 (pymoo column is `res.F`).
-   DTLZ2: U = 222, p = 6.15164×10⁻⁶, median ratio 1.58638 (pymoo column is n_var=10). That test rejects equal distributions at α = 0.05.
-   ZDT2 has no published C# Wilcoxon table; the quality budget is 250 generations. A matched 15-seed re-run has not replaced the table.
+   DTLZ2: U = 168, p = 0.0225311, median ratio 1.16183 (both columns are n_var=12). That test rejects equal distributions at α = 0.05.
+   ZDT2 has no published C# Wilcoxon table; the quality budget is 250 generations. Do not invent one.
 
 Export path: dump final `F` as CSV from both sides; compute IGD in this library.
 
 ## 5. What we implemented after this research
 
 - Full ZDT1–4, ZDT6; DTLZ1–4, DTLZ7; Sphere, Ackley, Rosenbrock  
-- GD / IGD / IGD+ / HV₂  
+- GD / GD+ / IGD / IGD+ / HV₂  
 - Analytic PF samplers  
 - Fixed-seed smoke IGD bounds (loose) + unit metric tests against hand-checked values  
 - GitHub Packages publish workflow  

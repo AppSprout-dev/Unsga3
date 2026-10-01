@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Measured 15-seed tables for OSY, TNK, and C1-DTLZ1 (feasible non-dominated IGD vs pymoo `UNSGA3`) and for mating opt-ins (`TwoShuffledPasses`, `Algorithm2`, and both) in `docs/NEW-SURFACES-RESULTS.md`. Protocol is in `docs/EQUIVALENCE.md`. Package defaults are unchanged. `docs/WILCOXON-RESULTS.md` is not rewritten.
+- `PerformanceIndicators.GenerationalDistancePlus` (Ishibuchi GD+): mean modified distance from each obtained point to the nearest reference point. Hand-case unit tests. No new benchmark IGD table.
+- API reference via DocFX. From a clean checkout: `dotnet tool restore && dotnet docfx docfx.json`. CI job `api-docs` builds `_site/`.
+- Measured 15-seed tables for OSY, TNK, and C1-DTLZ1 (feasible non-dominated IGD vs pymoo `UNSGA3`) and for mating opt-ins (`TwoShuffledPasses`, `Algorithm2`, and both) in `docs/NEW-SURFACES-RESULTS.md`. Protocol is in `docs/EQUIVALENCE.md`. Package defaults are unchanged.
 - Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
 
 ### Changed
 
+- The library, tests, and BasicUsage sample multi-target `net8.0` and `net10.0`. `tools/OracleCompare` stays `net10.0`. GitHub Packages is still the only publish target.
+- `docs/WILCOXON-RESULTS.md` is the matched DTLZ2 re-run (`n_var=12` on C# and pymoo). ZDT2 stays out of that table (quality bar is gens=250 + `PymooCompatible`). No invented ZDT2 Wilcoxon numbers.
 - Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
 
 ## [0.2.0] — 2026-09-30

@@ -62,8 +62,42 @@ public class MetricsTests
         var reference = new[] { new[] { 0.0, 0.0 }, new[] { 1.0, 0.0 } };
         double igdPlus = PerformanceIndicators.InvertedGenerationalDistancePlus(obtained, reference);
         double gd = PerformanceIndicators.GenerationalDistance(obtained, reference);
+        double gdPlus = PerformanceIndicators.GenerationalDistancePlus(obtained, reference);
         Assert.Equal(1.0, igdPlus, 9);
         Assert.Equal(1.0, gd, 9);
+        Assert.Equal(1.0, gdPlus, 9);
+    }
+
+    [Fact]
+    public void GdPlus_uses_only_the_worse_objectives()
+    {
+        // (0, 0) weakly dominates (1, 1). Euclidean GD is √2. GD+ is 0.
+        var dominating = new[] { new[] { 0.0, 0.0 } };
+        var worseReference = new[] { new[] { 1.0, 1.0 } };
+        double gdPlus = PerformanceIndicators.GenerationalDistancePlus(dominating, worseReference);
+        double gd = PerformanceIndicators.GenerationalDistance(dominating, worseReference);
+        Assert.Equal(0.0, gdPlus, 9);
+        Assert.Equal(Math.Sqrt(2), gd, 9);
+
+        // (0.5, 0.5) against {(0, 1), (1, 0)}.
+        // Each modified distance is 0.5. Euclidean nearest distance is √0.5.
+        var obtained = new[] { new[] { 0.5, 0.5 } };
+        var reference = new[] { new[] { 0.0, 1.0 }, new[] { 1.0, 0.0 } };
+        gdPlus = PerformanceIndicators.GenerationalDistancePlus(obtained, reference);
+        gd = PerformanceIndicators.GenerationalDistance(obtained, reference);
+        Assert.Equal(0.5, gdPlus, 9);
+        Assert.Equal(Math.Sqrt(0.5), gd, 9);
+    }
+
+    [Fact]
+    public void GdPlus_is_infinite_when_a_front_is_empty()
+    {
+        var point = new[] { new[] { 0.0, 0.0 } };
+        var empty = Array.Empty<double[]>();
+        Assert.True(double.IsPositiveInfinity(
+            PerformanceIndicators.GenerationalDistancePlus(empty, point)));
+        Assert.True(double.IsPositiveInfinity(
+            PerformanceIndicators.GenerationalDistancePlus(point, empty)));
     }
 
     [Fact]
@@ -77,6 +111,8 @@ public class MetricsTests
             PerformanceIndicators.GenerationalDistance(shortVector, wide));
         Assert.Throws<ArgumentException>(() =>
             PerformanceIndicators.InvertedGenerationalDistancePlus(wide, shortVector));
+        Assert.Throws<ArgumentException>(() =>
+            PerformanceIndicators.GenerationalDistancePlus(wide, shortVector));
     }
 
     [Fact]
