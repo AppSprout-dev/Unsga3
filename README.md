@@ -2,12 +2,12 @@
 
 [![ci](https://github.com/AppSprout-dev/Unsga3/actions/workflows/ci.yml/badge.svg)](https://github.com/AppSprout-dev/Unsga3/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-purple.svg)](https://dotnet.microsoft.com/)
 
 **U-NSGA-III** (Unified NSGA-III) for .NET — single-, multi-, and many-objective evolutionary optimization with Das–Dennis reference directions, SBX crossover, polynomial mutation, and **niching-based tournament selection** ([Seada & Deb, 2016](https://ieeexplore.ieee.org/document/7271063)).
 
-> **v0.2.0** — opt-in two-shuffle mating, Algorithm 2 tournament, odd-N pairing, feasible-only niching, equal-CV Deb fix, two-layer Das–Dennis, and OSY/TNK/C1-DTLZ1. Defaults stay unconstrained `RankNicheDistance`, independent mating, and single-layer Das–Dennis. The published 15-seed table is not rewritten.  
-> **15-seed IGD vs pymoo `UNSGA3`:** ZDT1 **median 0.053 vs 0.070** (MWU *p*≈0.05) compares the full C# non-dominated front with pymoo `res.F`. DTLZ2 **median 0.0045 vs 0.0028** (~1.6×) compares C# n_var=12 with pymoo's default n_var=10. Neither pair is a same-set, same-problem ranking. Notes: [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md).  
+> **v0.2.0** — opt-in two-shuffle mating, Algorithm 2 tournament, odd-N pairing, feasible-only niching, equal-CV Deb fix, two-layer Das–Dennis, and OSY/TNK/C1-DTLZ1. Defaults stay unconstrained `RankNicheDistance`, independent mating, and single-layer Das–Dennis. Unreleased work adds `net8.0`+`net10.0`, GD+, and DocFX.  
+> **15-seed IGD vs pymoo `UNSGA3`:** ZDT1 **median 0.053173 vs 0.0695884** (MWU *p*=0.0512394) compares the full C# non-dominated front with pymoo `res.F`. DTLZ2 **median 0.00451168 vs 0.00388327** (ratio 1.16183, MWU *p*=0.0225311) uses **n_var=12** on both sides. ZDT2 has no Wilcoxon table. Notes: [`docs/WILCOXON-RESULTS.md`](docs/WILCOXON-RESULTS.md).  
 > Details: [`docs/WILCOXON-RESULTS.md`](docs/WILCOXON-RESULTS.md) · single-seed notes: [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md) · constrained + mating opt-ins: [`docs/NEW-SURFACES-RESULTS.md`](docs/NEW-SURFACES-RESULTS.md)
 
 ```text
@@ -76,7 +76,7 @@ var algo = new Unsga3Algorithm(dirs, populationSize: 92, seed: 1,
 | `ReferenceDirections.DasDennis` | Single-layer reference points (default) |
 | `ReferenceDirections.TwoLayerDasDennis` | Outer layer plus an inside layer for larger M |
 | `SimulatedBinaryCrossover` / `PolynomialMutation` | Variation operators |
-| `PerformanceIndicators` | IGD, GD, 2-D hypervolume |
+| `PerformanceIndicators` | IGD, IGD+, GD, GD+, 2-D hypervolume |
 | `TournamentMode` | Default rank→niche, `PymooCompatible` (distance-tie coin flip), or opt-in `Algorithm2` (keep the second parent) |
 | `MatingPoolMode` | Default independent tournaments; opt-in `TwoShuffledPasses` (paper / pymoo 0.6.2) |
 
@@ -87,10 +87,19 @@ Built-in problems: ZDT1–4/6, DTLZ1–4/7, Sphere, Ackley, Rosenbrock, and cons
 ```bash
 dotnet build Unsga3.slnx -c Release
 dotnet test Unsga3.slnx -c Release
-dotnet run --project samples/BasicUsage -c Release
+dotnet run --project samples/BasicUsage -c Release -f net10.0
 ```
 
-Requires **.NET 10** SDK. Optional oracle: Python 3 + `pip install pymoo` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+The library, tests, and sample target **`net8.0` and `net10.0`**. Building both needs the .NET 8 and .NET 10 SDKs. `tools/OracleCompare` is `net10.0` only. Optional oracle: Python 3 + `pip install pymoo` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+
+API reference (DocFX, local tool):
+
+```bash
+dotnet tool restore
+dotnet docfx docfx.json
+```
+
+That writes `_site/` and does not publish a package.
 
 ## TypeSafe / Jev Pareto scoring (optional)
 
@@ -141,6 +150,7 @@ Unsga3/
 ├── tools/typesafe-pareto/   # optional TypeSafe / Jev Score+Choice on a front sample
 ├── metrics/                 # typesafe-runs.jsonl (local; gitignored)
 ├── docs/
+├── docfx.json               # API docs (`dotnet docfx docfx.json`)
 └── .github/workflows/       # CI + GitHub Packages publish
 ```
 

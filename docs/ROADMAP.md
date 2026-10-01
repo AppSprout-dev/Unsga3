@@ -14,13 +14,13 @@ Living plan for Unsga3. Issues track concrete work; this page is the narrative.
 
 ## Near term (0.2)
 
-- [ ] Multi-seed Wilcoxon results checked in / refreshed on release  
-- [ ] `net8.0` (+ `net10.0`) multi-target for broader NuGet consumers  
+- [x] Multi-seed Wilcoxon results checked in / refreshed on release  
+- [x] `net8.0` (+ `net10.0`) multi-target for broader NuGet consumers  
 - [ ] nuget.org publish (in addition to GitHub Packages)  
-- [ ] GD+ indicator (IGD+ has a hand-case test; GD and IGD were already implemented)
+- [x] GD+ indicator (IGD+ has a hand-case test; GD and IGD were already implemented)
 - [x] Constrained demos (OSY, TNK, C1-DTLZ1) with formulation and survival self-tests  
-- [x] Constrained IGD / Wilcoxon vs pymoo — [NEW-SURFACES-RESULTS.md](NEW-SURFACES-RESULTS.md). The published ZDT/DTLZ Wilcoxon file is unchanged.  
-- [ ] API docs site (DocFX or similar)  
+- [x] Constrained IGD / Wilcoxon vs pymoo — [NEW-SURFACES-RESULTS.md](NEW-SURFACES-RESULTS.md). Those tables do not replace the ZDT/DTLZ Wilcoxon file.  
+- [x] API docs site (DocFX or similar)  
 
 ## Medium term (0.3+)
 

@@ -18,7 +18,9 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Restore
         run: dotnet restore Unsga3.slnx
@@ -53,3 +55,20 @@ jobs:
 
       - name: Smoke (mock)
         run: python tools/typesafe-pareto/score_pareto.py --smoke --force-mock --metrics metrics/typesafe-runs.jsonl
+
+  api-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore DocFX
+        run: dotnet tool restore
+
+      - name: Build API docs
+        run: dotnet docfx docfx.json

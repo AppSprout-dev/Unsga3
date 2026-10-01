@@ -2,7 +2,7 @@ namespace Unsga3.Metrics;
 
 /// <summary>
 /// Industry-standard MOEA performance indicators aligned with pymoo / Coello / Ishibuchi:
-/// GD, IGD (p=2 Euclidean), IGD+, and 2-D hypervolume.
+/// GD, GD+, IGD (p=2 Euclidean), IGD+, and 2-D hypervolume.
 /// Formulas match pymoo docs (https://pymoo.org/misc/indicators.html).
 /// </summary>
 public static class PerformanceIndicators
@@ -19,6 +19,36 @@ public static class PerformanceIndicators
         double sum = 0;
         for (int i = 0; i < obtained.Count; i++)
             sum += NearestDistance(obtained[i], referenceFront);
+        return sum / obtained.Count;
+    }
+
+    /// <summary>
+    /// GD+ (Ishibuchi et al.): mean modified distance from each obtained point
+    /// to the nearest reference point (minimization). The distance is the Euclidean
+    /// norm of <c>max(a_j − z_j, 0)</c>, the same one used by
+    /// <see cref="InvertedGenerationalDistancePlus"/>. A point that is weakly better
+    /// than a reference point in every objective contributes 0 toward that reference.
+    /// </summary>
+    public static double GenerationalDistancePlus(
+        IReadOnlyList<double[]> obtained,
+        IReadOnlyList<double[]> referenceFront)
+    {
+        ValidateFronts(obtained, referenceFront);
+        if (obtained.Count == 0 || referenceFront.Count == 0)
+            return double.PositiveInfinity;
+
+        double sum = 0;
+        for (int i = 0; i < obtained.Count; i++)
+        {
+            double best = double.PositiveInfinity;
+            var a = obtained[i];
+            for (int j = 0; j < referenceFront.Count; j++)
+            {
+                double d = ModifiedDistance(a, referenceFront[j]);
+                if (d < best) best = d;
+            }
+            sum += best;
+        }
         return sum / obtained.Count;
     }
 

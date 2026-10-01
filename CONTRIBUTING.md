@@ -10,8 +10,9 @@ Thanks for your interest. This library aims to be a **faithful, well-tested** U-
 
 ## Development setup
 
-- **.NET 10 SDK** ([download](https://dotnet.microsoft.com/download))
+- **.NET 8 SDK and .NET 10 SDK** ([download](https://dotnet.microsoft.com/download)). The library, tests, and sample target both. `tools/OracleCompare` is `net10.0` only.
 - Optional (oracle / multi-seed stats): Python 3.10+ with `pip install pymoo`
+- Optional (API docs): `dotnet tool restore` then `dotnet docfx docfx.json` (DocFX is pinned in `.config/dotnet-tools.json`)
 - Optional (TypeSafe / Jev Pareto scores): Python 3.10+; live calls need `TYPESAFE_API_KEY` (never commit it)
 
 ```bash
@@ -19,7 +20,7 @@ git clone https://github.com/AppSprout-dev/Unsga3.git
 cd Unsga3
 dotnet build Unsga3.slnx -c Release
 dotnet test Unsga3.slnx -c Release
-dotnet run --project samples/BasicUsage -c Release
+dotnet run --project samples/BasicUsage -c Release -f net10.0
 ```
 
 ### Oracle / equivalence (optional)

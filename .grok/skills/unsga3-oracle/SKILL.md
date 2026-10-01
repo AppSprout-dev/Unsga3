@@ -19,13 +19,13 @@ Repo root: Unsga3. Confirm `Unsga3.slnx` / `tools/OracleCompare` exist before ru
 | zdt2 | 12 | 52 | **250** | `--pymoo-mode` (`PymooCompatible`) |
 | dtlz2 | 12 | 92 | 150 | `--pymoo-mode` (`PymooCompatible`) |
 
-DTLZ2: C# `Dtlz2Problem(k: 10)` ⇒ **n_var=12**. `run_pymoo_oracle.py` passes `n_var=12`. pymoo’s own default is n_var=10 (k=8). Do not treat the published 15-seed pymoo column as that matched run, and do not rewrite `docs/WILCOXON-RESULTS.md` until the seeds are re-run.
+DTLZ2: C# `Dtlz2Problem(k: 10)` ⇒ **n_var=12**. `run_pymoo_oracle.py` and `run_multiseed_wilcoxon.py` pass `n_var=12`. pymoo’s own default is n_var=10 (k=8). The checked-in `docs/WILCOXON-RESULTS.md` DTLZ2 columns are that matched re-run. Rewrite that file only by re-running the harness. Do not paste a remembered n_var=10 column back in.
 
 ZDT2 **gens=100** is an early-stress snapshot (collapse on Bend, C#, and pymoo), not the quality bar. Quality protocol matches unsga3-bend A/B (gens=250, PymooCompatible). `RankNicheDistance` is an optional unpublished Wilcoxon ZDT2 mating mode — do not silently switch all ZDT defaults to it. ZDT1 and DTLZ2 unchanged.
 
 IGD = **mean** nearest Euclidean distance (pymoo-compatible). C# scores the full non-dominated front; `run_pymoo_oracle.py` scores pymoo `res.F` (niche optimum). Compare them only on a shared front definition and a shared reference set. Docs: `docs/EQUIVALENCE.md`, `docs/RESEARCH-STANDARDS.md`.
 
-Requires: .NET 10 SDK; Python 3 + `pip install pymoo` for pymoo side / multi-seed.
+Requires: .NET 10 SDK to run `tools/OracleCompare`. A full `dotnet test` of both library TFMs also needs the .NET 8 SDK. Python 3 + `pip install pymoo` for the pymoo side / multi-seed.
 
 ## Modes
 

@@ -74,11 +74,11 @@ On the shared 100-point PF, the full-front pair is C# 0.05119280568479224 and py
 | 5 | 0.00466 |
 | **mean** | **~0.00485** |
 
-Those five C# seeds are `Dtlz2Problem(k: 10)` (n_var=12). The 0.0035 figure they were compared with is pymoo at **n_var=10** (k=8). That is not a same-problem band. The 15-seed file is unchanged until a matched re-run (see below).
+Those five C# seeds are `Dtlz2Problem(k: 10)` (n_var=12). The 0.0035 figure they were compared with is pymoo at **n_var=10** (k=8). That is not a same-problem band. The current 15-seed file is the matched n_var=12 re-run (see below).
 
 ### DTLZ2 n_var (known mismatch, seed 1 remeasured)
 
-`Dtlz2Problem(nObjectives: 3, k: 10)` builds **n = 12**. Deb et al. suggest k = 10. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k = 8). The harness used to omit `n_var`, so the published seed-1 pair and `docs/WILCOXON-RESULTS.md` compare those two dimensions. `tools/oracle/run_pymoo_oracle.py` now passes **n_var=12**.
+`Dtlz2Problem(nObjectives: 3, k: 10)` builds **n = 12**. Deb et al. suggest k = 10. pymoo 0.6.2 `get_problem("dtlz2", n_obj=3)` defaults to **n_var=10** (k = 8). The harness used to omit `n_var`, so the historical seed-1 pair below compares those two dimensions. `tools/oracle/run_pymoo_oracle.py` and `tools/oracle/run_multiseed_wilcoxon.py` pass **n_var=12**. [WILCOXON-RESULTS.md](WILCOXON-RESULTS.md) is that matched 15-seed re-run.
 
 Published mismatched seed 1 (already in the Wilcoxon table; not re-interpreted as parity):
 
@@ -94,7 +94,7 @@ Seed 1 remeasured **2026-09-22** with pymoo 0.6.2 after the oracle passes `n_var
 | C# `PymooCompatible` | 12 | 10 | 0.00403168 | 0.004031675764658275 | 92 |
 | pymoo `n_var=12` | 12 | 10 | 0.00308392 | 0.003083921253245871 | 91 |
 
-Ratio of the two meta IGDs: 0.004031675764658275 / 0.003083921253245871 = **1.30732**. That is one seed, and the fronts still differ by one point (92 vs 91). It is not a 15-seed ranking and it does not replace the Wilcoxon table.
+Ratio of the two meta IGDs: 0.004031675764658275 / 0.003083921253245871 = **1.30732**. That is one seed, and the fronts still differ by one point (92 vs 91). Seed 1 of the matched 15-seed table is this console pair. The 15-seed median ratio is **1.16183** ([WILCOXON-RESULTS.md](WILCOXON-RESULTS.md)).
 
 ## Root cause of the old ~5× DTLZ2 gap (fixed)
 

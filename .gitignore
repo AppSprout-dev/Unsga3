@@ -41,3 +41,7 @@ metrics/typesafe-runs.jsonl
 appsettings.*.local.json
 .env
 .env.*
+
+# DocFX (regenerate with `dotnet tool restore && dotnet docfx docfx.json`)
+_site/
+/api/
