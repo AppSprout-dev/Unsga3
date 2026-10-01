@@ -6,7 +6,7 @@
 
 **U-NSGA-III** (Unified NSGA-III) for .NET — single-, multi-, and many-objective evolutionary optimization with Das–Dennis reference directions, SBX crossover, polynomial mutation, and **niching-based tournament selection** ([Seada & Deb, 2016](https://ieeexplore.ieee.org/document/7271063)).
 
-> **v0.2.0** — opt-in two-shuffle mating, Algorithm 2 tournament, odd-N pairing, feasible-only niching, equal-CV Deb fix, two-layer Das–Dennis, and OSY/TNK/C1-DTLZ1. Defaults stay unconstrained `RankNicheDistance`, independent mating, and single-layer Das–Dennis. Unreleased work adds `net8.0`+`net10.0`, GD+, and DocFX.  
+> **v0.2.1** — `net8.0`+`net10.0`, Ishibuchi GD+, DocFX, and the matched DTLZ2 Wilcoxon re-run (`n_var=12` on C# and pymoo). Defaults stay unconstrained `RankNicheDistance`, independent mating, and single-layer Das–Dennis.  
 > **15-seed IGD vs pymoo `UNSGA3`:** ZDT1 **median 0.053173 vs 0.0695884** (MWU *p*=0.0512394) compares the full C# non-dominated front with pymoo `res.F`. DTLZ2 **median 0.00451168 vs 0.00388327** (ratio 1.16183, MWU *p*=0.0225311) uses **n_var=12** on both sides. ZDT2 has no Wilcoxon table. Notes: [`docs/WILCOXON-RESULTS.md`](docs/WILCOXON-RESULTS.md).  
 > Details: [`docs/WILCOXON-RESULTS.md`](docs/WILCOXON-RESULTS.md) · single-seed notes: [`docs/ORACLE-RESULTS.md`](docs/ORACLE-RESULTS.md) · constrained + mating opt-ins: [`docs/NEW-SURFACES-RESULTS.md`](docs/NEW-SURFACES-RESULTS.md)
 
