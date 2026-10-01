@@ -9,16 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
+
+### Changed
+
+- Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
+
+## [0.2.1] — 2026-10-01
+
+`net8.0`+`net10.0`, GD+, DocFX, and the matched DTLZ2 Wilcoxon table (`n_var=12` on C# and pymoo). **Defaults stay unconstrained `RankNicheDistance`, independent mating, and single-layer `DasDennis`.** GitHub Packages is still the only publish target. No new ZDT2 Wilcoxon numbers.
+
+### Added
+
 - `PerformanceIndicators.GenerationalDistancePlus` (Ishibuchi GD+): mean modified distance from each obtained point to the nearest reference point. Hand-case unit tests. No new benchmark IGD table.
 - API reference via DocFX. From a clean checkout: `dotnet tool restore && dotnet docfx docfx.json`. CI job `api-docs` builds `_site/`.
 - Measured 15-seed tables for OSY, TNK, and C1-DTLZ1 (feasible non-dominated IGD vs pymoo `UNSGA3`) and for mating opt-ins (`TwoShuffledPasses`, `Algorithm2`, and both) in `docs/NEW-SURFACES-RESULTS.md`. Protocol is in `docs/EQUIVALENCE.md`. Package defaults are unchanged.
-- Optional **TypeSafe / Jev System One** pass (`tools/typesafe-pareto`) for Score + Choice judgments over a small Pareto candidate sample. Additive semantic layer — does not replace NSGA-III / U-NSGA-III objectives. Live calls only when `TYPESAFE_API_KEY` is set; CI uses mocks. Metrics append to `metrics/typesafe-runs.jsonl`.
 
 ### Changed
 
 - The library, tests, and BasicUsage sample multi-target `net8.0` and `net10.0`. `tools/OracleCompare` stays `net10.0`. GitHub Packages is still the only publish target.
 - `docs/WILCOXON-RESULTS.md` is the matched DTLZ2 re-run (`n_var=12` on C# and pymoo). ZDT2 stays out of that table (quality bar is gens=250 + `PymooCompatible`). No invented ZDT2 Wilcoxon numbers.
-- Docs and XML comments describe `initialPopulation` and hybrid loops in generic terms (domain-adapter warm-start / grid-seed). No product-repo names.
 
 ## [0.2.0] — 2026-09-30
 
@@ -116,7 +126,8 @@ Forensic-audit wave (G1–G10): document known gaps against pymoo and Seada & De
 - Benchmarks: ZDT1–4/6, DTLZ1–4/7, Sphere / Ackley / Rosenbrock
 - Metrics: IGD, GD, 2-D HV; self-tests + GitHub Packages publish workflow
 
-[Unreleased]: https://github.com/AppSprout-dev/Unsga3/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/AppSprout-dev/Unsga3/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/AppSprout-dev/Unsga3/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.5...v0.2.0
 [0.1.5]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/AppSprout-dev/Unsga3/compare/v0.1.3...v0.1.4

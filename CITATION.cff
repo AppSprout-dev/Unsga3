@@ -21,8 +21,8 @@ keywords:
   - C#
   - .NET
 license: MIT
-version: 0.2.0
-date-released: "2026-09-30"
+version: 0.2.1
+date-released: "2026-10-01"
 references:
   - type: article
     authors:
