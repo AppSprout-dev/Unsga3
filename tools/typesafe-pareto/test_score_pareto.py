@@ -2,13 +2,19 @@
 """Mock tests for the TypeSafe Pareto helper. No network, no API keys."""
 from __future__ import annotations
 
+import http.client
+import io
 import json
 import os
+import socket
 import sys
 import tempfile
 import unittest
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from unittest import mock
+from urllib.response import addinfourl
 
 HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
@@ -202,6 +208,254 @@ class HttpClientTests(unittest.TestCase):
             http_post=boom,
         )
         self.assertEqual(result["mode"], "mock")
+
+
+class _ScriptedHttpsHandler(urllib.request.HTTPSHandler):
+    """Canned HTTPS responses. https_open does not touch the network."""
+
+    def __init__(
+        self,
+        scripted: list[tuple[int, str, bytes]],
+        seen: list[dict[str, str | None]],
+    ) -> None:
+        super().__init__()
+        self._scripted = scripted
+        self._seen = seen
+
+    def https_open(self, req: urllib.request.Request):
+        host = urllib.parse.urlsplit(req.full_url).hostname
+        self._seen.append(
+            {
+                "url": req.full_url,
+                "host": None if host is None else host.lower().rstrip("."),
+                "authorization": req.get_header("Authorization"),
+            }
+        )
+        if self._scripted:
+            status, location, body = self._scripted.pop(0)
+        else:
+            status, location, body = 200, "", b'{"answers":{}}'
+        headers = http.client.HTTPMessage()
+        if location:
+            headers["Location"] = location
+        headers["Content-Type"] = "application/json"
+        response = addinfourl(io.BytesIO(body), headers, req.full_url, status)
+        response.msg = "Found" if status >= 300 else "OK"
+        return response
+
+
+def _patched_opener(handler: urllib.request.BaseHandler):
+    """Install ``handler`` in place of the real HTTPS handler. No proxies."""
+    real_build_opener = urllib.request.build_opener
+
+    def build(*handlers: urllib.request.BaseHandler):
+        return real_build_opener(urllib.request.ProxyHandler({}), handler, *handlers)
+
+    return mock.patch("urllib.request.build_opener", side_effect=build)
+
+
+def _block_network():
+    """Fail the test if urllib falls through to a real connection."""
+    boom = mock.Mock(side_effect=AssertionError("network"))
+    return mock.patch.multiple(socket, create_connection=boom, getaddrinfo=boom)
+
+
+class KeyAllowlistTests(unittest.TestCase):
+    def test_allowlisted_default_base_url_ok(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(sp.BASE_URL_ENV, None)
+            self.assertEqual(sp.resolve_base_url(), "https://api.typesafe.ai")
+            self.assertEqual(sp.resolve_base_url(None), "https://api.typesafe.ai")
+        self.assertEqual(sp.ALLOWED_TYPESAFE_HOSTS, frozenset({"api.typesafe.ai"}))
+        self.assertEqual(
+            sp.resolve_base_url("https://api.typesafe.ai/"),
+            "https://api.typesafe.ai",
+        )
+        self.assertEqual(
+            sp.resolve_base_url("https://API.typesafe.ai"),
+            "https://API.typesafe.ai",
+        )
+        seen: list[dict[str, str | None]] = []
+        handler = _ScriptedHttpsHandler(
+            [(200, "", b'{"model":"jev-latest","answers":{"ok":{"type":"choice","choice":"keep"}}}')],
+            seen,
+        )
+        with _block_network(), _patched_opener(handler):
+            payload = sp._http_system_one(
+                {"candidates": []},
+                {},
+                model="jev-latest",
+                api_key="test-key",
+                base_url=sp.resolve_base_url("https://api.typesafe.ai"),
+                timeout=1.0,
+            )
+        self.assertEqual(payload["answers"]["ok"]["choice"], "keep")
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(seen[0]["host"], "api.typesafe.ai")
+        self.assertEqual(seen[0]["url"], "https://api.typesafe.ai/v1/systemone")
+        self.assertEqual(seen[0]["authorization"], "Bearer test-key")
+
+    def test_disallowed_base_url_rejected_without_request(self) -> None:
+        rejected = (
+            "https://evil.example",
+            "http://api.typesafe.ai",
+            "https://api.typesafe.ai.evil.example",
+            "https://notapi.typesafe.ai",
+            "https://user:pass@api.typesafe.ai",
+            "https://api.typesafe.ai:443@evil.example",
+        )
+        for url in rejected:
+            with self.subTest(url=url):
+                with self.assertRaises(sp.TypeSafeConfigError) as caught:
+                    sp.resolve_base_url(url)
+                message = str(caught.exception)
+                self.assertIn("api.typesafe.ai", message)
+                self.assertNotIn("test-key", message)
+
+        with mock.patch.dict(os.environ, {sp.BASE_URL_ENV: "https://evil.example/v1"}):
+            with self.assertRaises(sp.TypeSafeConfigError) as caught:
+                sp.resolve_base_url(None)
+            self.assertIn("evil.example", str(caught.exception))
+            self.assertEqual(
+                sp.resolve_base_url("https://api.typesafe.ai"),
+                "https://api.typesafe.ai",
+            )
+
+        def boom(*_args, **_kwargs):
+            raise AssertionError("request must not be sent")
+
+        with mock.patch("urllib.request.Request", side_effect=boom), mock.patch(
+            "urllib.request.build_opener", side_effect=boom
+        ):
+            with self.assertRaises(sp.TypeSafeConfigError):
+                sp._http_system_one(
+                    {},
+                    {},
+                    model="jev-latest",
+                    api_key="test-key",
+                    base_url="https://evil.example",
+                    timeout=1.0,
+                )
+
+        with self.assertRaises(sp.TypeSafeConfigError):
+            sp.call_system_one(
+                {"candidates": []},
+                {},
+                model="jev-latest",
+                api_key="test-key",
+                base_url="https://evil.example",
+                http_post=boom,
+            )
+        with self.assertRaises(sp.TypeSafeConfigError):
+            sp._sdk_system_one(
+                {},
+                {},
+                model="jev-latest",
+                api_key="test-key",
+                base_url="https://evil.example",
+                timeout=1.0,
+            )
+        payload = sp.load_export(FIXTURE)
+        with self.assertRaises(sp.TypeSafeConfigError):
+            sp.run_pass(
+                payload,
+                api_key="test-key",
+                base_url="https://evil.example",
+                force_mock=True,
+                metrics_path=None,
+                http_post=boom,
+            )
+
+    def test_cross_host_redirect_does_not_send_authorization(self) -> None:
+        seen: list[dict[str, str | None]] = []
+        handler = _ScriptedHttpsHandler(
+            [(302, "https://evil.example/collect", b"")],
+            seen,
+        )
+        with _block_network(), _patched_opener(handler):
+            with self.assertRaises(sp.TypeSafeRequestError) as caught:
+                sp._http_system_one(
+                    {"candidates": []},
+                    {},
+                    model="jev-latest",
+                    api_key="test-key",
+                    base_url="https://api.typesafe.ai",
+                    timeout=1.0,
+                )
+        self.assertIn("evil.example", str(caught.exception))
+        self.assertNotIn("test-key", str(caught.exception))
+        self.assertEqual([row["host"] for row in seen], ["api.typesafe.ai"])
+        self.assertEqual(seen[0]["authorization"], "Bearer test-key")
+        self.assertTrue(all(row["host"] != "evil.example" for row in seen))
+        self.assertTrue(all("evil.example" not in (row["url"] or "") for row in seen))
+
+    def test_https_downgrade_redirect_is_refused(self) -> None:
+        seen: list[dict[str, str | None]] = []
+        handler = _ScriptedHttpsHandler(
+            [(302, "http://api.typesafe.ai/v1/systemone", b"")],
+            seen,
+        )
+        with _block_network(), _patched_opener(handler):
+            with self.assertRaises(sp.TypeSafeRequestError) as caught:
+                sp._http_system_one(
+                    {"candidates": []},
+                    {},
+                    model="jev-latest",
+                    api_key="test-key",
+                    base_url="https://api.typesafe.ai",
+                    timeout=1.0,
+                )
+        self.assertIn("http://api.typesafe.ai", str(caught.exception))
+        self.assertEqual([row["host"] for row in seen], ["api.typesafe.ai"])
+        self.assertEqual(seen[0]["authorization"], "Bearer test-key")
+        self.assertTrue(all(row["url"].startswith("https://") for row in seen if row["url"]))
+
+    def test_same_host_https_redirect_keeps_authorization(self) -> None:
+        seen: list[dict[str, str | None]] = []
+        handler = _ScriptedHttpsHandler(
+            [
+                (302, "https://api.typesafe.ai/v1/systemone/", b""),
+                (200, "", b'{"answers":{"ok":{"type":"choice","choice":"keep"}}}'),
+            ],
+            seen,
+        )
+        with _block_network(), _patched_opener(handler):
+            payload = sp._http_system_one(
+                {"candidates": []},
+                {},
+                model="jev-latest",
+                api_key="test-key",
+                base_url="https://api.typesafe.ai",
+                timeout=1.0,
+            )
+        self.assertEqual(payload["answers"]["ok"]["choice"], "keep")
+        self.assertEqual(
+            [row["host"] for row in seen],
+            ["api.typesafe.ai", "api.typesafe.ai"],
+        )
+        self.assertEqual(
+            [row["authorization"] for row in seen],
+            ["Bearer test-key", "Bearer test-key"],
+        )
+
+    def test_cli_rejects_disallowed_base_url(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            metrics = Path(tmp) / "typesafe-runs.jsonl"
+            stderr = io.StringIO()
+            with mock.patch("sys.stderr", new=stderr), mock.patch("sys.stdout", new=io.StringIO()):
+                rc = sp.main(
+                    [
+                        "--smoke",
+                        "--force-mock",
+                        "--metrics",
+                        str(metrics),
+                        "--base-url",
+                        "https://evil.example",
+                    ]
+                )
+        self.assertEqual(rc, 2)
+        self.assertIn("evil.example", stderr.getvalue())
+        self.assertFalse(metrics.exists())
 
 
 class CliTests(unittest.TestCase):
