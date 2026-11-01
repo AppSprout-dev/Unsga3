@@ -15,7 +15,10 @@ Usage:
   python tools/typesafe-pareto/score_pareto.py --candidates path.json
 
 Live POST https://api.typesafe.ai/v1/systemone only when TYPESAFE_API_KEY
-is set (and --force-mock is not). CI uses the in-process mock.
+is set (and --force-mock is not). The API key is sent only to hosts in
+ALLOWED_TYPESAFE_HOSTS, over HTTPS. Other --base-url / TYPESAFE_BASE_URL
+values are rejected before a request, and cross-host redirects are refused.
+CI uses the in-process mock.
 """
 from __future__ import annotations
 
@@ -29,7 +32,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 # Optional official SDK (https://docs.typesafe.ai/sdk/python.md).
 # CI does not install it; HTTP fallback matches the documented REST API.
@@ -42,6 +45,9 @@ EXPERIMENT = "unsga3_pareto_score"
 REPO = "AppSprout-dev/Unsga3"
 DEFAULT_MODEL = "jev-latest"
 DEFAULT_BASE_URL = "https://api.typesafe.ai"
+# Hosts that may receive the TypeSafe API key. Only API origins already
+# referenced in this repo belong here.
+ALLOWED_TYPESAFE_HOSTS = frozenset({"api.typesafe.ai"})
 SYSTEMONE_PATH = "/v1/systemone"
 API_KEY_ENV = "TYPESAFE_API_KEY"
 BASE_URL_ENV = "TYPESAFE_BASE_URL"
@@ -81,6 +87,10 @@ DEFAULT_METRICS = REPO_ROOT / "metrics" / METRIC_FILENAME
 
 class TypeSafeRequestError(RuntimeError):
     """Raised when the TypeSafe HTTP API returns an error or cannot be reached."""
+
+
+class TypeSafeConfigError(ValueError):
+    """Raised when a base URL would send the TypeSafe API key off its allowlist."""
 
 
 def repo_root() -> Path:
@@ -372,9 +382,67 @@ def mock_system_one(
     }
 
 
+def _allowlist_text() -> str:
+    return ", ".join(sorted(ALLOWED_TYPESAFE_HOSTS))
+
+
+def _typesafe_key_host(url: str) -> str | None:
+    """Return the hostname when ``url`` may receive the TypeSafe API key.
+
+    The host must be an exact allowlist match, the scheme must be HTTPS,
+    and the URL must not carry userinfo. Anything else returns None.
+    """
+    if not isinstance(url, str):
+        return None
+    parsed = urlsplit(url.strip())
+    if parsed.scheme != "https" or parsed.username is not None or parsed.password is not None:
+        return None
+    host = parsed.hostname
+    if host is None:
+        return None
+    host = host.lower().rstrip(".")
+    if host not in ALLOWED_TYPESAFE_HOSTS:
+        return None
+    return host
+
+
+def validate_typesafe_base_url(url: str) -> str:
+    """Return ``url`` when its host may receive the TypeSafe API key.
+
+    Raises TypeSafeConfigError otherwise. This does not open a connection.
+    """
+    cleaned = url.strip().rstrip("/")
+    if _typesafe_key_host(cleaned) is None:
+        raise TypeSafeConfigError(
+            f"Refusing TypeSafe base URL {url!r}: the API key is only sent "
+            f"over HTTPS to {_allowlist_text()}."
+        )
+    return cleaned
+
+
 def _systemone_url(base_url: str) -> str:
     root = base_url.rstrip("/") + "/"
     return urljoin(root, SYSTEMONE_PATH.lstrip("/"))
+
+
+class _AllowlistedRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Follow only HTTPS redirects that stay on the TypeSafe key allowlist.
+
+    urllib keeps headers passed to Request(..., headers=...), including
+    Authorization, when HTTPRedirectHandler.redirect_request builds the next
+    request. A cross-host 3xx would send the API key to that second host.
+    Same-host HTTPS redirects on an allowlisted host are followed. Every
+    other redirect is refused before the next request is opened.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if _typesafe_key_host(newurl) is None:
+            raise TypeSafeRequestError(
+                f"Refusing TypeSafe redirect to {newurl!r}: the API key is only "
+                f"sent over HTTPS to {_allowlist_text()}, and Authorization is "
+                "not forwarded to any other host."
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def _http_system_one(
@@ -386,9 +454,17 @@ def _http_system_one(
     base_url: str,
     timeout: float,
 ) -> dict[str, Any]:
+    # Check the origin before Authorization is attached to a request.
+    base_url = validate_typesafe_base_url(base_url)
+    target = _systemone_url(base_url)
+    if _typesafe_key_host(target) is None:
+        raise TypeSafeConfigError(
+            f"Refusing TypeSafe request URL {target!r}: the API key is only sent "
+            f"over HTTPS to {_allowlist_text()}."
+        )
     body = json.dumps({"state": state, "model": model, "questions": questions}).encode("utf-8")
     request = urllib.request.Request(
-        _systemone_url(base_url),
+        target,
         data=body,
         method="POST",
         headers={
@@ -397,8 +473,9 @@ def _http_system_one(
             "Accept": "application/json",
         },
     )
+    opener = urllib.request.build_opener(_AllowlistedRedirectHandler())
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as resp:
+        with opener.open(request, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -419,6 +496,7 @@ def _sdk_system_one(
     base_url: str,
     timeout: float,
 ) -> dict[str, Any]:
+    base_url = validate_typesafe_base_url(base_url)
     if TypeSafeClient is None:
         raise TypeSafeRequestError("typesafe-sdk is not installed.")
     with TypeSafeClient(api_key=api_key, model=model, base_url=base_url, timeout=timeout) as client:
@@ -484,10 +562,18 @@ def resolve_model(explicit: str | None = None) -> str:
 
 
 def resolve_base_url(explicit: str | None = None) -> str:
-    if explicit:
-        return explicit.rstrip("/")
-    env = (os.environ.get(BASE_URL_ENV) or "").strip()
-    return (env or DEFAULT_BASE_URL).rstrip("/")
+    """Return the allowlisted TypeSafe base URL.
+
+    Precedence is the explicit value (``--base-url`` / ``base_url=``), then
+    ``TYPESAFE_BASE_URL``, then ``DEFAULT_BASE_URL``. A host that is not on
+    ``ALLOWED_TYPESAFE_HOSTS`` raises TypeSafeConfigError before any request.
+    """
+    chosen = explicit.strip() if isinstance(explicit, str) else ""
+    if not chosen:
+        chosen = (os.environ.get(BASE_URL_ENV) or "").strip()
+    if not chosen:
+        chosen = DEFAULT_BASE_URL
+    return validate_typesafe_base_url(chosen)
 
 
 def call_system_one(
@@ -506,19 +592,24 @@ def call_system_one(
     if force_mock or not api_key:
         response = mock_system_one(state, questions, model=model)
         mode = "mock"
-    elif http_post is not None:
-        response = http_post(state, questions, model=model, api_key=api_key, base_url=base_url, timeout=timeout)
-        mode = "http"
-    elif TypeSafeClient is not None:
-        response = _sdk_system_one(
-            state, questions, model=model, api_key=api_key, base_url=base_url, timeout=timeout
-        )
-        mode = "sdk"
     else:
-        response = _http_system_one(
-            state, questions, model=model, api_key=api_key, base_url=base_url, timeout=timeout
-        )
-        mode = "http"
+        # Pin the key before the HTTP client, the SDK, or an injected post sees the URL.
+        base_url = validate_typesafe_base_url(base_url)
+        if http_post is not None:
+            response = http_post(
+                state, questions, model=model, api_key=api_key, base_url=base_url, timeout=timeout
+            )
+            mode = "http"
+        elif TypeSafeClient is not None:
+            response = _sdk_system_one(
+                state, questions, model=model, api_key=api_key, base_url=base_url, timeout=timeout
+            )
+            mode = "sdk"
+        else:
+            response = _http_system_one(
+                state, questions, model=model, api_key=api_key, base_url=base_url, timeout=timeout
+            )
+            mode = "http"
     latency_ms = (time.perf_counter() - started) * 1000.0
     return response, mode, latency_ms
 
@@ -718,6 +809,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument("--metrics", type=Path, default=DEFAULT_METRICS)
     p.add_argument("--no-metrics", action="store_true")
     p.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_S)
+    p.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "TypeSafe API origin "
+            f"(default: {DEFAULT_BASE_URL}, or {BASE_URL_ENV}). "
+            "The host must be on the API key allowlist."
+        ),
+    )
     p.add_argument("--json", action="store_true", help="Print full result JSON")
     return p.parse_args(argv)
 
@@ -737,15 +837,20 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     payload = load_export(path)
     metrics_path = None if args.no_metrics else args.metrics
-    result = run_pass(
-        payload,
-        limit=args.limit,
-        model=args.model,
-        force_mock=args.force_mock,
-        metrics_path=metrics_path,
-        notes="smoke fixture" if args.smoke or path == DEFAULT_FIXTURE else f"export {path.name}",
-        timeout=args.timeout,
-    )
+    try:
+        result = run_pass(
+            payload,
+            limit=args.limit,
+            model=args.model,
+            base_url=args.base_url,
+            force_mock=args.force_mock,
+            metrics_path=metrics_path,
+            notes="smoke fixture" if args.smoke or path == DEFAULT_FIXTURE else f"export {path.name}",
+            timeout=args.timeout,
+        )
+    except TypeSafeConfigError as exc:
+        print(exc, file=sys.stderr)
+        return 2
 
     print(f"TypeSafe Pareto pass | mode={result['mode']} model={result['metrics']['model']} "
           f"candidates={result['metrics']['candidate_count']} questions={len(result['questions'])} "
