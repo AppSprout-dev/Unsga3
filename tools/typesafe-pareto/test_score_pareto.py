@@ -457,6 +457,122 @@ class KeyAllowlistTests(unittest.TestCase):
         self.assertIn("evil.example", stderr.getvalue())
         self.assertFalse(metrics.exists())
 
+    def test_explicit_port_443_ok_other_ports_and_trailing_dot_rejected(self) -> None:
+        self.assertEqual(
+            sp.resolve_base_url("https://api.typesafe.ai:443"),
+            "https://api.typesafe.ai:443",
+        )
+        self.assertEqual(
+            sp.resolve_base_url("https://api.typesafe.ai:443/"),
+            "https://api.typesafe.ai:443",
+        )
+        rejected = (
+            "https://api.typesafe.ai:8443",
+            "https://api.typesafe.ai:foo",
+            "https://api.typesafe.ai.",
+            "https://API.typesafe.ai.",
+        )
+
+        def boom(*_args, **_kwargs):
+            raise AssertionError("request must not be sent")
+
+        for url in rejected:
+            with self.subTest(url=url):
+                with self.assertRaises(sp.TypeSafeConfigError):
+                    sp.resolve_base_url(url)
+                with mock.patch("urllib.request.Request", side_effect=boom), mock.patch(
+                    "urllib.request.build_opener", side_effect=boom
+                ):
+                    with self.assertRaises(sp.TypeSafeConfigError):
+                        sp._http_system_one(
+                            {},
+                            {},
+                            model="jev-latest",
+                            api_key="test-key",
+                            base_url=url,
+                            timeout=1.0,
+                        )
+
+    def test_redirect_to_non_443_port_is_refused(self) -> None:
+        seen: list[dict[str, str | None]] = []
+        handler = _ScriptedHttpsHandler(
+            [(302, "https://api.typesafe.ai:8443/v1/systemone", b"")],
+            seen,
+        )
+        with _block_network(), _patched_opener(handler):
+            with self.assertRaises(sp.TypeSafeRequestError) as caught:
+                sp._http_system_one(
+                    {"candidates": []},
+                    {},
+                    model="jev-latest",
+                    api_key="test-key",
+                    base_url="https://api.typesafe.ai",
+                    timeout=1.0,
+                )
+        self.assertIn(":8443", str(caught.exception))
+        self.assertEqual([row["url"] for row in seen], ["https://api.typesafe.ai/v1/systemone"])
+        self.assertEqual(seen[0]["authorization"], "Bearer test-key")
+
+    def test_sdk_path_disables_redirects(self) -> None:
+        created: dict[str, object] = {}
+
+        class _FakeHttpClient:
+            def __init__(self) -> None:
+                self.follow_redirects = False
+
+            def close(self) -> None:
+                created["closed"] = True
+
+        class _FakeHttpx:
+            def Client(self, **kwargs: object) -> _FakeHttpClient:
+                created["http_kwargs"] = kwargs
+                client = _FakeHttpClient()
+                created["http_client"] = client
+                return client
+
+        class _Result:
+            raw_http_response = None
+            answers: dict[str, object] = {}
+            model = "jev-latest"
+            usage = None
+
+        class _FakeTypeSafeClient:
+            def __init__(self, **kwargs: object) -> None:
+                created["sdk_kwargs"] = kwargs
+
+            def __enter__(self) -> "_FakeTypeSafeClient":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                http_client = created.get("http_client")
+                if http_client is not None:
+                    http_client.close()
+
+            def system_one(self, **_kwargs: object) -> _Result:
+                return _Result()
+
+        with mock.patch.object(sp, "httpx2", _FakeHttpx()), mock.patch.object(
+            sp, "TypeSafeClient", _FakeTypeSafeClient
+        ):
+            payload = sp._sdk_system_one(
+                {"candidates": []},
+                {},
+                model="jev-latest",
+                api_key="test-key",
+                base_url="https://api.typesafe.ai",
+                timeout=1.0,
+            )
+        http_kwargs = created["http_kwargs"]
+        self.assertIsInstance(http_kwargs, dict)
+        self.assertIs(http_kwargs["follow_redirects"], False)
+        self.assertEqual(http_kwargs["timeout"], 1.0)
+        sdk_kwargs = created["sdk_kwargs"]
+        self.assertIsInstance(sdk_kwargs, dict)
+        self.assertIs(sdk_kwargs["http_client"], created["http_client"])
+        self.assertEqual(sdk_kwargs["base_url"], "https://api.typesafe.ai")
+        self.assertEqual(payload["model"], "jev-latest")
+        self.assertIs(created["closed"], True)
+
 
 class CliTests(unittest.TestCase):
     def test_smoke_cli_writes_metrics(self) -> None:
