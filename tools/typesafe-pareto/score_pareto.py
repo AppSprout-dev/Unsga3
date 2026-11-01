@@ -16,8 +16,9 @@ Usage:
 
 Live POST https://api.typesafe.ai/v1/systemone only when TYPESAFE_API_KEY
 is set (and --force-mock is not). The API key is sent only to hosts in
-ALLOWED_TYPESAFE_HOSTS, over HTTPS. Other --base-url / TYPESAFE_BASE_URL
-values are rejected before a request, and cross-host redirects are refused.
+ALLOWED_TYPESAFE_HOSTS, over HTTPS, with the port omitted or 443 and no
+trailing dot on the host. Other --base-url / TYPESAFE_BASE_URL values are
+rejected before a request, and redirects that leave that origin are refused.
 CI uses the in-process mock.
 """
 from __future__ import annotations
@@ -36,9 +37,12 @@ from urllib.parse import urljoin, urlsplit
 
 # Optional official SDK (https://docs.typesafe.ai/sdk/python.md).
 # CI does not install it; HTTP fallback matches the documented REST API.
+# httpx2 is the SDK's HTTP stack (typesafe-sdk 0.7.5 requires httpx2>=2).
 try:
+    import httpx2
     from typesafe_sdk import TypeSafeClient
 except ImportError:  # pragma: no cover - exercised when the extra is absent
+    httpx2 = None
     TypeSafeClient = None
 
 EXPERIMENT = "unsga3_pareto_score"
@@ -389,19 +393,27 @@ def _allowlist_text() -> str:
 def _typesafe_key_host(url: str) -> str | None:
     """Return the hostname when ``url`` may receive the TypeSafe API key.
 
-    The host must be an exact allowlist match, the scheme must be HTTPS,
+    The host must match the allowlist exactly (a trailing dot is a different
+    host string), the scheme must be HTTPS, the port must be omitted or 443,
     and the URL must not carry userinfo. Anything else returns None.
     """
     if not isinstance(url, str):
         return None
     parsed = urlsplit(url.strip())
+    try:
+        # .port raises ValueError for non-numeric ports such as ":foo".
+        # urlsplit and urlparse share this property.
+        port = parsed.port
+    except ValueError:
+        return None
     if parsed.scheme != "https" or parsed.username is not None or parsed.password is not None:
         return None
-    host = parsed.hostname
-    if host is None:
+    if port not in (None, 443):
         return None
-    host = host.lower().rstrip(".")
-    if host not in ALLOWED_TYPESAFE_HOSTS:
+    # hostname is already lowercase and keeps a trailing dot, so exact
+    # membership rejects "api.typesafe.ai." without stripping it.
+    host = parsed.hostname
+    if host is None or host not in ALLOWED_TYPESAFE_HOSTS:
         return None
     return host
 
@@ -415,7 +427,7 @@ def validate_typesafe_base_url(url: str) -> str:
     if _typesafe_key_host(cleaned) is None:
         raise TypeSafeConfigError(
             f"Refusing TypeSafe base URL {url!r}: the API key is only sent "
-            f"over HTTPS to {_allowlist_text()}."
+            f"over HTTPS to {_allowlist_text()} on port 443, with no trailing dot."
         )
     return cleaned
 
@@ -431,16 +443,17 @@ class _AllowlistedRedirectHandler(urllib.request.HTTPRedirectHandler):
     urllib keeps headers passed to Request(..., headers=...), including
     Authorization, when HTTPRedirectHandler.redirect_request builds the next
     request. A cross-host 3xx would send the API key to that second host.
-    Same-host HTTPS redirects on an allowlisted host are followed. Every
-    other redirect is refused before the next request is opened.
+    Same-host HTTPS redirects on an allowlisted host are followed when the
+    port is omitted or 443 and the host has no trailing dot. Every other
+    redirect is refused before the next request is opened.
     """
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         if _typesafe_key_host(newurl) is None:
             raise TypeSafeRequestError(
                 f"Refusing TypeSafe redirect to {newurl!r}: the API key is only "
-                f"sent over HTTPS to {_allowlist_text()}, and Authorization is "
-                "not forwarded to any other host."
+                f"sent over HTTPS to {_allowlist_text()} on port 443, and "
+                "Authorization is not forwarded anywhere else."
             )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -460,7 +473,7 @@ def _http_system_one(
     if _typesafe_key_host(target) is None:
         raise TypeSafeConfigError(
             f"Refusing TypeSafe request URL {target!r}: the API key is only sent "
-            f"over HTTPS to {_allowlist_text()}."
+            f"over HTTPS to {_allowlist_text()} on port 443, with no trailing dot."
         )
     body = json.dumps({"state": state, "model": model, "questions": questions}).encode("utf-8")
     request = urllib.request.Request(
@@ -497,27 +510,43 @@ def _sdk_system_one(
     timeout: float,
 ) -> dict[str, Any]:
     base_url = validate_typesafe_base_url(base_url)
-    if TypeSafeClient is None:
+    if TypeSafeClient is None or httpx2 is None:
         raise TypeSafeRequestError("typesafe-sdk is not installed.")
-    with TypeSafeClient(api_key=api_key, model=model, base_url=base_url, timeout=timeout) as client:
-        result = client.system_one(state=state, questions=questions, model=model)
-        raw = getattr(result, "raw_http_response", None)
-        if raw is not None:
-            payload = raw.json()
-            if isinstance(payload, dict) and "answers" in payload:
-                return payload
-        usage = getattr(result, "usage", None)
-        answers: dict[str, Any] = {}
-        for key, answer in getattr(result, "answers", {}).items():
-            answers[key] = _answer_to_dict(answer)
-        return {
-            "model": getattr(result, "model", model),
-            "answers": answers,
-            "usage": {
-                "input_tokens": getattr(usage, "input_tokens", None),
-                "output_tokens": getattr(usage, "output_tokens", None),
-            },
-        }
+    # typesafe-sdk 0.7.5 puts Authorization on the request and sends it with
+    # httpx2.Client.request. It does not pass follow_redirects. httpx2 2.16.0
+    # defaults that flag to False, so a 3xx is not followed. When redirects are
+    # enabled, httpx2 removes Authorization on a cross-origin hop except an
+    # http:80 -> https:443 upgrade of the same host. Pass an explicit client
+    # with follow_redirects=False so a later default cannot carry the key.
+    http_client = httpx2.Client(follow_redirects=False, timeout=timeout)
+    try:
+        with TypeSafeClient(
+            api_key=api_key,
+            model=model,
+            base_url=base_url,
+            timeout=timeout,
+            http_client=http_client,
+        ) as client:
+            result = client.system_one(state=state, questions=questions, model=model)
+            raw = getattr(result, "raw_http_response", None)
+            if raw is not None:
+                payload = raw.json()
+                if isinstance(payload, dict) and "answers" in payload:
+                    return payload
+            usage = getattr(result, "usage", None)
+            answers: dict[str, Any] = {}
+            for key, answer in getattr(result, "answers", {}).items():
+                answers[key] = _answer_to_dict(answer)
+            return {
+                "model": getattr(result, "model", model),
+                "answers": answers,
+                "usage": {
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                },
+            }
+    finally:
+        http_client.close()
 
 
 def _answer_to_dict(answer: Any) -> dict[str, Any]:
@@ -566,7 +595,8 @@ def resolve_base_url(explicit: str | None = None) -> str:
 
     Precedence is the explicit value (``--base-url`` / ``base_url=``), then
     ``TYPESAFE_BASE_URL``, then ``DEFAULT_BASE_URL``. A host that is not on
-    ``ALLOWED_TYPESAFE_HOSTS`` raises TypeSafeConfigError before any request.
+    ``ALLOWED_TYPESAFE_HOSTS``, a port other than 443, or a trailing-dot host
+    raises TypeSafeConfigError before any request.
     """
     chosen = explicit.strip() if isinstance(explicit, str) else ""
     if not chosen:
