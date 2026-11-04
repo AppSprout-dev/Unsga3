@@ -1,0 +1,22 @@
+name: hold
+on:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+permissions: {}
+concurrency:
+  group: hold-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  hold-gate:
+    name: Hold label
+    runs-on: [self-hosted, appsprout-linux]
+    env:
+      HAS_HOLD: ${{ contains(toJSON(github.event.pull_request.labels.*.name), '"hold"') }}
+    steps:
+      - name: Fail when the hold label is present
+        run: |
+          if [ "$HAS_HOLD" = "true" ]; then
+            echo "::error title=On hold::This PR has the hold label. Only Jason lifts a hold; it will not merge until he removes it."
+            exit 1
+          fi
