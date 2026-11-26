@@ -14,7 +14,7 @@ public static class PerformanceIndicators
     public static double GenerationalDistance(IReadOnlyList<double[]> obtained, IReadOnlyList<double[]> referenceFront)
     {
         ValidateFronts(obtained, referenceFront);
-        if (obtained.Count == 0) return double.PositiveInfinity;
+        if (obtained.Count == 0 || referenceFront.Count == 0) return double.PositiveInfinity;
 
         double sum = 0;
         for (int i = 0; i < obtained.Count; i++)
@@ -107,16 +107,28 @@ public static class PerformanceIndicators
         ArgumentNullException.ThrowIfNull(front);
         ArgumentNullException.ThrowIfNull(referencePoint);
         if (referencePoint.Length != 2)
-            throw new ArgumentException("Hypervolume2D requires a 2-D reference point.");
+            throw new ArgumentException("Hypervolume2D requires a 2-D reference point.", nameof(referencePoint));
 
-        // Filter points that dominate nothing beyond ref and sort by f1 ascending.
-        var pts = front
-            .Where(p => p.Length >= 2 && p[0] < referencePoint[0] && p[1] < referencePoint[1])
-            .OrderBy(p => p[0])
-            .ThenBy(p => p[1])
-            .ToList();
+        // Validate point dimensions, filter points strictly dominating ref, and sort by (f1, f2).
+        var pts = new List<double[]>(front.Count);
+        for (int i = 0; i < front.Count; i++)
+        {
+            var p = front[i];
+            if (p is null)
+                throw new ArgumentException("Front contains a null objective vector.", nameof(front));
+            if (p.Length != 2)
+                throw new ArgumentException("Hypervolume2D requires 2-D objective vectors.", nameof(front));
+            if (p[0] < referencePoint[0] && p[1] < referencePoint[1])
+                pts.Add(p);
+        }
 
         if (pts.Count == 0) return 0;
+
+        pts.Sort((a, b) =>
+        {
+            int cmp = a[0].CompareTo(b[0]);
+            return cmp != 0 ? cmp : a[1].CompareTo(b[1]);
+        });
 
         // Keep non-dominated only (minimization).
         var nd = new List<double[]>();

@@ -108,10 +108,16 @@ public static class ReferenceDirections
     /// </summary>
     public static int PartitionsForMinimumDirections(int numberOfObjectives, int minDirections)
     {
-        if (numberOfObjectives <= 1) return 1;
+        if (numberOfObjectives < 1)
+            throw new ArgumentOutOfRangeException(nameof(numberOfObjectives));
+        if (minDirections < 1)
+            throw new ArgumentOutOfRangeException(nameof(minDirections));
+        if (numberOfObjectives == 1) return 1;
+        if (numberOfObjectives == 2) return Math.Max(1, minDirections - 1);
+
         int p = 1;
-        while (Count(numberOfObjectives, p) < minDirections && p < 100)
-            p++;
+        while (Count(numberOfObjectives, p) < minDirections)
+            p = checked(p + 1);
         return p;
     }
 
@@ -123,8 +129,12 @@ public static class ReferenceDirections
     /// </summary>
     public static int Count(int numberOfObjectives, int partitions)
     {
+        if (numberOfObjectives < 1)
+            throw new ArgumentOutOfRangeException(nameof(numberOfObjectives));
+        if (partitions < 1)
+            throw new ArgumentOutOfRangeException(nameof(partitions));
         if (numberOfObjectives == 1) return 1;
-        return checked((int)Binomial(partitions + numberOfObjectives - 1, numberOfObjectives - 1));
+        return checked((int)Binomial(checked(partitions + numberOfObjectives - 1), numberOfObjectives - 1));
     }
 
     private static void Recurse(List<double[]> points, double[] current, int m, int p, int left, int index)

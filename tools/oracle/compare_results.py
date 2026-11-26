@@ -22,6 +22,8 @@ def main() -> None:
     print("-" * 80)
     for m in rows:
         mode = m.get("tournament") or m.get("algorithm") or ""
+        raw_igd = m.get("igd")
+        igd_cell = f"{float(raw_igd):12.6g}" if raw_igd is not None else f"{'n/a':>12}"
         print(
             f"{m.get('source', '?'):12} "
             f"{m.get('problem', '?'):8} "
@@ -30,7 +32,7 @@ def main() -> None:
             f"{m.get('n_gen', 0):5} "
             f"{m.get('seed', 0):4} "
             f"{m.get('n_solutions', 0):4} "
-            f"{float(m.get('igd', float('nan'))):12.6g}"
+            f"{igd_cell}"
         )
 
 

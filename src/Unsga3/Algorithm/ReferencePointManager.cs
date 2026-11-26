@@ -7,6 +7,8 @@ namespace Unsga3.Algorithm;
 public sealed class ReferencePointManager
 {
     private readonly double[][] _directions;
+    private readonly IReadOnlyList<double[]> _directionsView;
+    private readonly double[] _normSq;
     private readonly int[] _nicheCount;
 
     public ReferencePointManager(double[][] referenceDirections)
@@ -14,20 +16,34 @@ public sealed class ReferencePointManager
         ArgumentNullException.ThrowIfNull(referenceDirections);
         if (referenceDirections.Length < 1)
             throw new ArgumentException("Need at least one reference direction.", nameof(referenceDirections));
+        if (referenceDirections[0] is null || referenceDirections[0].Length < 1)
+            throw new ArgumentException("Reference directions must be non-empty.", nameof(referenceDirections));
 
-        _directions = referenceDirections;
-        _nicheCount = new int[referenceDirections.Length];
         NumberOfObjectives = referenceDirections[0].Length;
-        for (int i = 1; i < referenceDirections.Length; i++)
+        _directions = new double[referenceDirections.Length][];
+        _normSq = new double[referenceDirections.Length];
+        _nicheCount = new int[referenceDirections.Length];
+
+        for (int i = 0; i < referenceDirections.Length; i++)
         {
-            if (referenceDirections[i].Length != NumberOfObjectives)
-                throw new ArgumentException("All reference directions must have the same dimension.");
+            var row = referenceDirections[i];
+            if (row is null || row.Length != NumberOfObjectives)
+                throw new ArgumentException("All reference directions must be non-null and have the same dimension.", nameof(referenceDirections));
+
+            var copy = (double[])row.Clone();
+            _directions[i] = copy;
+            double ww = 0;
+            for (int j = 0; j < NumberOfObjectives; j++)
+                ww += copy[j] * copy[j];
+            _normSq[i] = ww;
         }
+
+        _directionsView = Array.AsReadOnly(_directions);
     }
 
     public int Count => _directions.Length;
     public int NumberOfObjectives { get; }
-    public IReadOnlyList<double[]> Directions => _directions;
+    public IReadOnlyList<double[]> Directions => _directionsView;
 
     public void ResetNicheCounts()
     {
@@ -58,19 +74,24 @@ public sealed class ReferencePointManager
 
         for (int i = 0; i < population.Count; i++)
         {
-            int bestRef = 0;
-            double bestDist = double.PositiveInfinity;
+            var f = normalizedObjectives[i];
+            ArgumentNullException.ThrowIfNull(f);
+            if (f.Length != NumberOfObjectives)
+                throw new ArgumentException("Normalized objective vector dimension does not match reference directions.");
+
+            int bestRef = -1;
+            double bestDistSq = double.PositiveInfinity;
             for (int r = 0; r < _directions.Length; r++)
             {
-                double d = PerpendicularDistance(normalizedObjectives[i], _directions[r]);
-                if (d < bestDist)
+                double dSq = PerpendicularDistanceSquared(f, _directions[r], _normSq[r]);
+                if (dSq < bestDistSq)
                 {
-                    bestDist = d;
+                    bestDistSq = dSq;
                     bestRef = r;
                 }
             }
             population[i].AssociatedReference = bestRef;
-            population[i].PerpendicularDistance = bestDist;
+            population[i].PerpendicularDistance = bestRef >= 0 ? Math.Sqrt(bestDistSq) : double.PositiveInfinity;
         }
 
         if (indicesToCount is not null)
@@ -105,19 +126,31 @@ public sealed class ReferencePointManager
     /// </summary>
     public static double PerpendicularDistance(double[] f, double[] w)
     {
-        double ww = 0, fw = 0;
-        for (int i = 0; i < f.Length; i++)
-        {
+        ArgumentNullException.ThrowIfNull(f);
+        ArgumentNullException.ThrowIfNull(w);
+        if (f.Length != w.Length)
+            throw new ArgumentException("Point and reference direction must have the same length.");
+
+        double ww = 0;
+        for (int i = 0; i < w.Length; i++)
             ww += w[i] * w[i];
-            fw += f[i] * w[i];
-        }
+
+        return Math.Sqrt(PerpendicularDistanceSquared(f, w, ww));
+    }
+
+    private static double PerpendicularDistanceSquared(double[] f, double[] w, double ww)
+    {
         if (ww < 1e-16)
         {
             double norm = 0;
             for (int i = 0; i < f.Length; i++)
                 norm += f[i] * f[i];
-            return Math.Sqrt(norm);
+            return norm;
         }
+
+        double fw = 0;
+        for (int i = 0; i < f.Length; i++)
+            fw += f[i] * w[i];
 
         double t = fw / ww;
         double distSq = 0;
@@ -126,6 +159,6 @@ public sealed class ReferencePointManager
             double d = f[i] - t * w[i];
             distSq += d * d;
         }
-        return Math.Sqrt(distSq);
+        return distSq;
     }
 }

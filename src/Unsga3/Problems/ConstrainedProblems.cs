@@ -64,7 +64,7 @@ public sealed class TnkProblem : ProblemBase
         f[0] = x[0];
         f[1] = x[1];
         double circle = x[0] * x[0] + x[1] * x[1] - 1.0
-            - 0.1 * Math.Cos(16.0 * Math.Atan(x[0] / x[1]));
+            - 0.1 * Math.Cos(16.0 * Math.Atan2(x[0], x[1]));
         g[0] = -circle;
         double dx = x[0] - 0.5;
         double dy = x[1] - 0.5;
@@ -82,10 +82,8 @@ public sealed class TnkProblem : ProblemBase
 public sealed class C1Dtlz1Problem : ProblemBase
 {
     public C1Dtlz1Problem(int nObjectives = 3, int k = 5)
-        : base(nObjectives + k - 1, nObjectives, 1, DtlzHelper.UnitBounds(nObjectives + k - 1))
+        : base(DtlzHelper.ValidateDimensions(nObjectives, k), nObjectives, 1, DtlzHelper.UnitBounds(nObjectives + k - 1))
     {
-        if (nObjectives < 2) throw new ArgumentOutOfRangeException(nameof(nObjectives));
-        if (k < 1) throw new ArgumentOutOfRangeException(nameof(k));
     }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)

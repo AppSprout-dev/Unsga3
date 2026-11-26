@@ -6,7 +6,14 @@ namespace Unsga3.Problems;
 public sealed class SphereProblem : ProblemBase
 {
     public SphereProblem(int nVariables = 10)
-        : base(nVariables, 1, 0, Enumerable.Repeat((-5.12, 5.12), nVariables).ToArray()) { }
+        : base(ValidateVariables(nVariables, 1), 1, 0, Enumerable.Repeat((-5.12, 5.12), nVariables).ToArray()) { }
+
+    internal static int ValidateVariables(int nVariables, int min)
+    {
+        if (nVariables < min)
+            throw new ArgumentOutOfRangeException(nameof(nVariables), nVariables, $"Requires at least {min} decision variable(s).");
+        return nVariables;
+    }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
     {
@@ -20,7 +27,7 @@ public sealed class SphereProblem : ProblemBase
 public sealed class AckleyProblem : ProblemBase
 {
     public AckleyProblem(int nVariables = 30)
-        : base(nVariables, 1, 0, Enumerable.Repeat((-32.768, 32.768), nVariables).ToArray()) { }
+        : base(SphereProblem.ValidateVariables(nVariables, 1), 1, 0, Enumerable.Repeat((-32.768, 32.768), nVariables).ToArray()) { }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
     {
@@ -41,7 +48,7 @@ public sealed class AckleyProblem : ProblemBase
 public sealed class RosenbrockProblem : ProblemBase
 {
     public RosenbrockProblem(int nVariables = 10)
-        : base(nVariables, 1, 0, Enumerable.Repeat((-2.048, 2.048), nVariables).ToArray()) { }
+        : base(SphereProblem.ValidateVariables(nVariables, 2), 1, 0, Enumerable.Repeat((-2.048, 2.048), nVariables).ToArray()) { }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
     {

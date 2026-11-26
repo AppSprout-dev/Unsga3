@@ -1,6 +1,7 @@
 """Diagnose C# vs pymoo DTLZ2 front quality gap."""
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -8,9 +9,18 @@ import numpy as np
 base = Path(__file__).resolve().parent / "out"
 
 
-def load(name: str) -> np.ndarray:
-    F = np.loadtxt(base / name, delimiter=",")
+def load(name: str, out_dir: Path = base) -> np.ndarray:
+    F = np.loadtxt(out_dir / name, delimiter=",")
     return np.atleast_2d(F)
+
+
+def load_first(candidates: list[str], out_dir: Path = base) -> np.ndarray:
+    for name in candidates:
+        path = out_dir / name
+        if path.exists():
+            return load(name, out_dir)
+    tried = ", ".join(str(out_dir / c) for c in candidates)
+    raise FileNotFoundError(f"None of the expected front CSVs exist: {tried}")
 
 
 def stats(F: np.ndarray, label: str) -> None:
@@ -51,9 +61,30 @@ def coverage(F: np.ndarray, pf: np.ndarray, thr: float = 0.05):
 
 
 def main() -> None:
-    cs = load("csharp_dtlz2_p12_pop92_g150_s1_pymoo_F.csv")
-    py = load("pymoo_dtlz2_p12_pop92_g150_s1_F.csv")
-    csd = load("csharp_dtlz2_p12_pop92_g150_s1_default_F.csv")
+    ap = argparse.ArgumentParser(description="Diagnose C# vs pymoo DTLZ2 front quality gap.")
+    ap.add_argument("--out-dir", type=Path, default=base)
+    ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--mating", default="independent")
+    args = ap.parse_args()
+    out_dir = args.out_dir
+    s = args.seed
+    mating = args.mating
+
+    cs = load_first(
+        [
+            f"csharp_dtlz2_p12_pop92_g150_s{s}_pymoo_{mating}_F.csv",
+            f"csharp_dtlz2_p12_pop92_g150_s{s}_pymoo_F.csv",
+        ],
+        out_dir,
+    )
+    py = load_first([f"pymoo_dtlz2_p12_pop92_g150_s{s}_F.csv"], out_dir)
+    csd = load_first(
+        [
+            f"csharp_dtlz2_p12_pop92_g150_s{s}_rankniche_{mating}_F.csv",
+            f"csharp_dtlz2_p12_pop92_g150_s{s}_default_F.csv",
+        ],
+        out_dir,
+    )
 
     stats(cs, "C# pymoo-mode")
     stats(csd, "C# default")

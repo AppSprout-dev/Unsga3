@@ -6,13 +6,20 @@ namespace Unsga3.Problems;
 public sealed class Zdt1Problem : ProblemBase
 {
     public Zdt1Problem(int nVariables = 30)
-        : base(nVariables, 2, 0, Uniform(nVariables, 0, 1)) { }
+        : base(ValidateVariables(nVariables), 2, 0, Uniform(nVariables, 0, 1)) { }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
     {
         f[0] = x[0];
         double gv = GLinear(x);
         f[1] = gv * (1.0 - Math.Sqrt(x[0] / gv));
+    }
+
+    internal static int ValidateVariables(int nVariables)
+    {
+        if (nVariables < 2)
+            throw new ArgumentOutOfRangeException(nameof(nVariables), nVariables, "ZDT problems require at least 2 decision variables.");
+        return nVariables;
     }
 
     internal static double GLinear(double[] x)
@@ -30,7 +37,7 @@ public sealed class Zdt1Problem : ProblemBase
 public sealed class Zdt2Problem : ProblemBase
 {
     public Zdt2Problem(int nVariables = 30)
-        : base(nVariables, 2, 0, Zdt1Problem.Uniform(nVariables, 0, 1)) { }
+        : base(Zdt1Problem.ValidateVariables(nVariables), 2, 0, Zdt1Problem.Uniform(nVariables, 0, 1)) { }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
     {
@@ -45,7 +52,7 @@ public sealed class Zdt2Problem : ProblemBase
 public sealed class Zdt3Problem : ProblemBase
 {
     public Zdt3Problem(int nVariables = 30)
-        : base(nVariables, 2, 0, Zdt1Problem.Uniform(nVariables, 0, 1)) { }
+        : base(Zdt1Problem.ValidateVariables(nVariables), 2, 0, Zdt1Problem.Uniform(nVariables, 0, 1)) { }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
     {
@@ -60,7 +67,7 @@ public sealed class Zdt3Problem : ProblemBase
 public sealed class Zdt4Problem : ProblemBase
 {
     public Zdt4Problem(int nVariables = 10)
-        : base(nVariables, 2, 0, BuildBounds(nVariables)) { }
+        : base(Zdt1Problem.ValidateVariables(nVariables), 2, 0, BuildBounds(nVariables)) { }
 
     private static (double Lower, double Upper)[] BuildBounds(int n)
     {
@@ -84,7 +91,7 @@ public sealed class Zdt4Problem : ProblemBase
 public sealed class Zdt6Problem : ProblemBase
 {
     public Zdt6Problem(int nVariables = 10)
-        : base(nVariables, 2, 0, Zdt1Problem.Uniform(nVariables, 0, 1)) { }
+        : base(Zdt1Problem.ValidateVariables(nVariables), 2, 0, Zdt1Problem.Uniform(nVariables, 0, 1)) { }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
     {

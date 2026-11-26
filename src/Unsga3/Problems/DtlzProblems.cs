@@ -5,6 +5,13 @@ namespace Unsga3.Problems;
 /// <summary>Shared DTLZ helpers (Deb et al.). Default k=10 ⇒ n = M+k-1.</summary>
 internal static class DtlzHelper
 {
+    public static int ValidateDimensions(int nObjectives, int k)
+    {
+        if (nObjectives < 2) throw new ArgumentOutOfRangeException(nameof(nObjectives));
+        if (k < 1) throw new ArgumentOutOfRangeException(nameof(k));
+        return checked(nObjectives + k - 1);
+    }
+
     public static (double Lower, double Upper)[] UnitBounds(int n) =>
         Enumerable.Repeat((0.0, 1.0), n).ToArray();
 
@@ -35,10 +42,8 @@ internal static class DtlzHelper
 public sealed class Dtlz1Problem : ProblemBase
 {
     public Dtlz1Problem(int nObjectives = 3, int k = 5)
-        : base(nObjectives + k - 1, nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
+        : base(DtlzHelper.ValidateDimensions(nObjectives, k), nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
     {
-        if (nObjectives < 2) throw new ArgumentOutOfRangeException(nameof(nObjectives));
-        if (k < 1) throw new ArgumentOutOfRangeException(nameof(k));
     }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
@@ -66,10 +71,8 @@ public sealed class Dtlz1Problem : ProblemBase
 public sealed class Dtlz2Problem : ProblemBase
 {
     public Dtlz2Problem(int nObjectives = 3, int k = 10)
-        : base(nObjectives + k - 1, nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
+        : base(DtlzHelper.ValidateDimensions(nObjectives, k), nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
     {
-        if (nObjectives < 2) throw new ArgumentOutOfRangeException(nameof(nObjectives));
-        if (k < 1) throw new ArgumentOutOfRangeException(nameof(k));
     }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
@@ -92,10 +95,8 @@ public sealed class Dtlz2Problem : ProblemBase
 public sealed class Dtlz3Problem : ProblemBase
 {
     public Dtlz3Problem(int nObjectives = 3, int k = 10)
-        : base(nObjectives + k - 1, nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
+        : base(DtlzHelper.ValidateDimensions(nObjectives, k), nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
     {
-        if (nObjectives < 2) throw new ArgumentOutOfRangeException(nameof(nObjectives));
-        if (k < 1) throw new ArgumentOutOfRangeException(nameof(k));
     }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
@@ -120,10 +121,10 @@ public sealed class Dtlz4Problem : ProblemBase
     private readonly double _alpha;
 
     public Dtlz4Problem(int nObjectives = 3, int k = 10, double alpha = 100.0)
-        : base(nObjectives + k - 1, nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
+        : base(DtlzHelper.ValidateDimensions(nObjectives, k), nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
     {
-        if (nObjectives < 2) throw new ArgumentOutOfRangeException(nameof(nObjectives));
-        if (k < 1) throw new ArgumentOutOfRangeException(nameof(k));
+        if (!double.IsFinite(alpha) || alpha <= 0.0)
+            throw new ArgumentOutOfRangeException(nameof(alpha));
         _alpha = alpha;
     }
 
@@ -147,10 +148,8 @@ public sealed class Dtlz4Problem : ProblemBase
 public sealed class Dtlz7Problem : ProblemBase
 {
     public Dtlz7Problem(int nObjectives = 3, int k = 20)
-        : base(nObjectives + k - 1, nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
+        : base(DtlzHelper.ValidateDimensions(nObjectives, k), nObjectives, 0, DtlzHelper.UnitBounds(nObjectives + k - 1))
     {
-        if (nObjectives < 2) throw new ArgumentOutOfRangeException(nameof(nObjectives));
-        if (k < 1) throw new ArgumentOutOfRangeException(nameof(k));
     }
 
     protected override void EvaluateCore(double[] x, double[] f, double[] g)
