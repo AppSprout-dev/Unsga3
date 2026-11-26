@@ -65,7 +65,13 @@ public sealed class TournamentSelection
 
     public Individual Tournament(IReadOnlyList<Individual> population, RandomProvider rng)
     {
+        ArgumentNullException.ThrowIfNull(population);
+        ArgumentNullException.ThrowIfNull(rng);
         int n = population.Count;
+        if (n == 0)
+            throw new ArgumentException("Population is empty.", nameof(population));
+        if (n == 1)
+            return population[0];
         int a = rng.Next(n);
         int b = rng.NextExcept(n, a);
         return Winner(population[a], population[b], rng, Mode);
@@ -196,6 +202,14 @@ public sealed class TournamentSelection
         if (count == 0)
             return new List<Individual>();
 
+        if (population.Count == 1)
+        {
+            var single = new List<Individual>(count);
+            for (int i = 0; i < count; i++)
+                single.Add(population[0].Clone());
+            return single;
+        }
+
         int[] contests = BuildTwoShuffleContestants(population.Count, count, rng);
         var parents = new List<Individual>(count);
         for (int i = 0; i < count; i++)
@@ -211,7 +225,8 @@ public sealed class TournamentSelection
     /// Recompute ranks and niche association for mating. This is a second normalization
     /// of the survivors. pymoo keeps the niche ids from environmental selection.
     /// The normalizer keeps the feasible hyperplane: infeasible survivors do not move
-    /// ideal or nadir.
+    /// ideal or nadir. On mixed feasible/infeasible populations, only feasible members
+    /// count toward niche occupancy and infeasible fillers remain unlinked.
     /// </summary>
     public static void PrepareForSelection(
         IReadOnlyList<Individual> population,
@@ -226,7 +241,39 @@ public sealed class TournamentSelection
         IReadOnlyList<int>? nd = fronts.Count > 0 ? fronts[0] : null;
         var normalized = normalization.Normalize(population, nd);
         references.ResetNicheCounts();
-        references.Associate(population, normalized);
+
+        List<int>? feasibleIndices = null;
+        bool anyInfeasible = false;
+        for (int i = 0; i < population.Count; i++)
+        {
+            if (population[i].IsFeasible)
+            {
+                feasibleIndices ??= new List<int>(population.Count);
+                feasibleIndices.Add(i);
+            }
+            else
+            {
+                anyInfeasible = true;
+            }
+        }
+
+        if (anyInfeasible && feasibleIndices is not null)
+        {
+            references.Associate(population, normalized, feasibleIndices);
+            for (int i = 0; i < population.Count; i++)
+            {
+                if (!population[i].IsFeasible)
+                {
+                    population[i].AssociatedReference = -1;
+                    population[i].PerpendicularDistance = double.PositiveInfinity;
+                    population[i].NicheCount = 0;
+                }
+            }
+        }
+        else
+        {
+            references.Associate(population, normalized);
+        }
     }
 
     private static void ShuffleRange(int[] values, int start, int length, RandomProvider rng)

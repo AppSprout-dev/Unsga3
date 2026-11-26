@@ -40,7 +40,8 @@ public sealed class Individual
     internal int NicheCount { get; set; }
     internal int AssociatedReference { get; set; } = -1;
     internal double PerpendicularDistance { get; set; } = double.PositiveInfinity;
-    internal bool Evaluated { get; set; }
+    /// <summary>True after the individual has been evaluated for its current decision variables.</summary>
+    public bool Evaluated { get; internal set; }
 
     public Individual Clone()
     {
@@ -59,14 +60,22 @@ public sealed class Individual
 
     /// <summary>
     /// Recompute aggregate violation from <see cref="Constraints"/> (g ≤ 0 form: positive values violate).
+    /// Any <see cref="double.NaN"/> constraint marks the individual maximally infeasible
+    /// (<see cref="double.PositiveInfinity"/>).
     /// </summary>
     public void RefreshConstraintViolation()
     {
         double v = 0;
         for (int i = 0; i < Constraints.Length; i++)
         {
-            if (Constraints[i] > 0)
-                v += Constraints[i];
+            double c = Constraints[i];
+            if (double.IsNaN(c))
+            {
+                ConstraintViolation = double.PositiveInfinity;
+                return;
+            }
+            if (c > 0)
+                v += c;
         }
         ConstraintViolation = v;
     }
@@ -86,7 +95,13 @@ public sealed class Individual
         if (aFeas && !bFeas) return true;
         if (!aFeas && bFeas) return false;
         if (!aFeas && !bFeas)
+        {
+            if (double.IsNaN(ConstraintViolation)) return false;
+            if (double.IsNaN(other.ConstraintViolation)) return true;
             return ConstraintViolation < other.ConstraintViolation;
-        return objectiveDominates?.Invoke(this, other) ?? false;
+        }
+        return objectiveDominates is not null
+            ? objectiveDominates(this, other)
+            : Core.NonDominatedSort.ComparePareto(Objectives, other.Objectives) < 0;
     }
 }

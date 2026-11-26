@@ -9,8 +9,10 @@ public sealed class SimulatedBinaryCrossover : ICrossover
 {
     public SimulatedBinaryCrossover(double distributionIndex = 30.0, double probability = 1.0)
     {
-        if (distributionIndex <= 0) throw new ArgumentOutOfRangeException(nameof(distributionIndex));
-        if (probability is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(probability));
+        if (!double.IsFinite(distributionIndex) || distributionIndex <= 0.0)
+            throw new ArgumentOutOfRangeException(nameof(distributionIndex));
+        if (!double.IsFinite(probability) || probability < 0.0 || probability > 1.0)
+            throw new ArgumentOutOfRangeException(nameof(probability));
         DistributionIndex = distributionIndex;
         Probability = probability;
     }
@@ -32,7 +34,9 @@ public sealed class SimulatedBinaryCrossover : ICrossover
         Array.Copy(parent1.Variables, c1.Variables, n);
         Array.Copy(parent2.Variables, c2.Variables, n);
 
-        if (rng.NextDouble() > Probability)
+        if (Probability <= 0.0)
+            return (c1, c2);
+        if (rng.NextDouble() >= Probability)
             return (c1, c2);
 
         double eta = DistributionIndex;

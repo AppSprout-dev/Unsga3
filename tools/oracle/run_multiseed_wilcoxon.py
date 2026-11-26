@@ -177,10 +177,23 @@ def run_csharp(proto: Protocol, seed: int) -> float:
     r = subprocess.run(args, capture_output=True, text=True, cwd=str(ROOT))
     if r.returncode != 0:
         raise RuntimeError(f"C# seed={seed} failed:\n{r.stdout}\n{r.stderr}")
+    t_slug = "pymoo" if proto.csharp_pymoo_mode else "rankniche"
+    meta_path = OUT / (
+        f"csharp_{proto.name}_p{proto.partitions}_pop{proto.pop}_g{proto.gens}"
+        f"_s{seed}_{t_slug}_independent_meta.json"
+    )
+    if meta_path.exists():
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if meta.get("igd") is not None:
+            return float(meta["igd"])
     for line in r.stdout.splitlines():
-        if line.startswith("IGD="):
+        if line.startswith("RESULT "):
+            for token in line.split():
+                if token.startswith("igd=") and token != "igd=skip":
+                    return float(token.split("=", 1)[1])
+        if line.startswith("IGD=") and line != "IGD=skip":
             return float(line.split("=", 1)[1])
-    raise RuntimeError(f"No IGD= in C# output:\n{r.stdout}")
+    raise RuntimeError(f"No IGD in C# output or {meta_path}:\n{r.stdout}")
 
 
 def run_pymoo(proto: Protocol, seed: int) -> float:

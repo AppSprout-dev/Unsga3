@@ -26,10 +26,13 @@ jobs:
         run: dotnet restore Unsga3.slnx
 
       - name: Build
-        run: dotnet build Unsga3.slnx -c Release --no-restore
+        run: dotnet build Unsga3.slnx -c Release --no-restore -p:TreatWarningsAsErrors=true
 
       - name: Test
         run: dotnet test Unsga3.slnx -c Release --no-build --verbosity normal --logger "console;verbosity=detailed"
+
+      - name: Smoke BasicUsage
+        run: dotnet run --project samples/BasicUsage -c Release --no-build -f net10.0
 
       - name: Pack
         run: dotnet pack src/Unsga3/Unsga3.csproj -c Release --no-build -o artifacts
@@ -38,7 +41,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nupkg
-          path: artifacts/*.nupkg
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
           if-no-files-found: error
 
   typesafe-pareto:

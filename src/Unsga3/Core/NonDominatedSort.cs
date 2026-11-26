@@ -8,7 +8,16 @@ public static class NonDominatedSort
     /// <summary>
     /// Assign ranks (0 = best front) and return fronts as lists of indices into <paramref name="population"/>.
     /// </summary>
-    public static List<List<int>> Sort(IReadOnlyList<Individual> population)
+    public static List<List<int>> Sort(IReadOnlyList<Individual> population) =>
+        SortCore(population, assignRanks: true);
+
+    /// <summary>
+    /// Return fronts as lists of indices into <paramref name="population"/> without mutating <see cref="Individual.Rank"/>.
+    /// </summary>
+    internal static List<List<int>> SortReadOnly(IReadOnlyList<Individual> population) =>
+        SortCore(population, assignRanks: false);
+
+    private static List<List<int>> SortCore(IReadOnlyList<Individual> population, bool assignRanks)
     {
         ArgumentNullException.ThrowIfNull(population);
         int n = population.Count;
@@ -21,24 +30,35 @@ public static class NonDominatedSort
         {
             S[i] = new List<int>();
             nDom[i] = 0;
-            population[i].Rank = int.MaxValue;
+            if (assignRanks)
+                population[i].Rank = int.MaxValue;
+        }
+
+        for (int p = 0; p < n; p++)
+        {
+            for (int q = p + 1; q < n; q++)
+            {
+                int cmp = CompareConstraintDominated(population[p], population[q]);
+                if (cmp < 0)
+                {
+                    S[p].Add(q);
+                    nDom[q]++;
+                }
+                else if (cmp > 0)
+                {
+                    S[q].Add(p);
+                    nDom[p]++;
+                }
+            }
         }
 
         var first = new List<int>();
         for (int p = 0; p < n; p++)
         {
-            for (int q = 0; q < n; q++)
-            {
-                if (p == q) continue;
-                int cmp = CompareConstraintDominated(population[p], population[q]);
-                if (cmp < 0)
-                    S[p].Add(q);
-                else if (cmp > 0)
-                    nDom[p]++;
-            }
             if (nDom[p] == 0)
             {
-                population[p].Rank = 0;
+                if (assignRanks)
+                    population[p].Rank = 0;
                 first.Add(p);
             }
         }
@@ -55,7 +75,8 @@ public static class NonDominatedSort
                     nDom[q]--;
                     if (nDom[q] == 0)
                     {
-                        population[q].Rank = k + 1;
+                        if (assignRanks)
+                            population[q].Rank = k + 1;
                         next.Add(q);
                     }
                 }
@@ -83,6 +104,9 @@ public static class NonDominatedSort
         if (!aFeas && bFeas) return 1;
         if (!aFeas && !bFeas)
         {
+            bool aNan = double.IsNaN(a.ConstraintViolation);
+            bool bNan = double.IsNaN(b.ConstraintViolation);
+            if (aNan != bNan) return aNan ? 1 : -1;
             if (a.ConstraintViolation < b.ConstraintViolation) return -1;
             if (a.ConstraintViolation > b.ConstraintViolation) return 1;
             // Deb constraint-domination: equal violation ⇒ neither dominates.
@@ -96,9 +120,13 @@ public static class NonDominatedSort
 
     /// <summary>
     /// Pareto comparison for minimization: &lt; 0 if a dominates b, &gt; 0 if b dominates a, else 0.
+    /// <see cref="double.NaN"/> coordinates are ordered strictly worse than any non-NaN value
+    /// (and tie with each other) to preserve a strict partial order.
     /// </summary>
     public static int ComparePareto(double[] a, double[] b)
     {
+        ArgumentNullException.ThrowIfNull(a);
+        ArgumentNullException.ThrowIfNull(b);
         if (a.Length != b.Length)
             throw new ArgumentException("Objective vectors must have the same length.");
 
@@ -106,8 +134,18 @@ public static class NonDominatedSort
         bool bBetter = false;
         for (int i = 0; i < a.Length; i++)
         {
-            if (a[i] < b[i]) aBetter = true;
-            else if (a[i] > b[i]) bBetter = true;
+            double ai = a[i];
+            double bi = b[i];
+            bool aNan = double.IsNaN(ai);
+            bool bNan = double.IsNaN(bi);
+            if (aNan || bNan)
+            {
+                if (!aNan) aBetter = true;
+                else if (!bNan) bBetter = true;
+                continue;
+            }
+            if (ai < bi) aBetter = true;
+            else if (ai > bi) bBetter = true;
         }
 
         if (aBetter && !bBetter) return -1;

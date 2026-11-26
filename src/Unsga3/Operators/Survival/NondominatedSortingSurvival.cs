@@ -89,7 +89,11 @@ public sealed class NondominatedSortingSurvival
         IReadOnlyList<int>? nd = fronts.Count > 0 ? fronts[0] : null;
         var normalized = _normalization.Normalize(population, nd);
         if (population.Count <= targetSize)
+        {
+            _references.ResetNicheCounts();
+            _references.Associate(population, normalized);
             return population.Select(i => i.Clone()).ToList();
+        }
 
         return SelectWithIndices(population, fronts, targetSize, normalized, rng);
     }
@@ -134,6 +138,7 @@ public sealed class NondominatedSortingSurvival
         var clone = source.Clone();
         clone.AssociatedReference = -1;
         clone.PerpendicularDistance = double.PositiveInfinity;
+        clone.NicheCount = 0;
         return clone;
     }
 
@@ -152,89 +157,128 @@ public sealed class NondominatedSortingSurvival
             fi++;
         }
 
+        _references.ResetNicheCounts();
+        _references.Associate(combined, normalized, indicesToCount: selectedIdx);
+
         if (selectedIdx.Count == targetSize || fi >= fronts.Count)
-            return selectedIdx.Select(i => combined[i].Clone()).ToList();
+            return CloneWithUpdatedNicheCounts(combined, selectedIdx);
 
         int remaining = targetSize - selectedIdx.Count;
-        var candidates = new List<int>(fronts[fi]);
+        var front = fronts[fi];
+        var buckets = new List<int>?[_references.Count];
+        List<int>? unassociated = null;
 
-        _references.Associate(combined, normalized, indicesToCount: null);
-        _references.ResetNicheCounts();
-        foreach (int i in selectedIdx)
-            _references.IncrementNiche(combined[i].AssociatedReference);
+        for (int idx = 0; idx < front.Count; idx++)
+        {
+            int candidate = front[idx];
+            int r = combined[candidate].AssociatedReference;
+            if ((uint)r < (uint)buckets.Length)
+            {
+                (buckets[r] ??= new List<int>()).Add(candidate);
+            }
+            else
+            {
+                (unassociated ??= new List<int>()).Add(candidate);
+            }
+        }
 
-        while (remaining > 0 && candidates.Count > 0)
+        // Ascending reference-index order keeps minRefs deterministic across runtimes
+        // without HashSet enumeration-order dependence or per-pick sorting.
+        var activeRefs = new List<int>(_references.Count);
+        for (int r = 0; r < buckets.Length; r++)
+        {
+            if (buckets[r] is { Count: > 0 })
+                activeRefs.Add(r);
+        }
+
+        var minRefs = new List<int>(activeRefs.Count);
+
+        while (remaining > 0 && activeRefs.Count > 0)
         {
             int minNiche = int.MaxValue;
-            var refsWithCandidates = new HashSet<int>();
-            foreach (int i in candidates)
-                refsWithCandidates.Add(combined[i].AssociatedReference);
-
-            foreach (int r in refsWithCandidates)
+            for (int a = 0; a < activeRefs.Count; a++)
             {
-                int nc = _references.GetNicheCount(r);
+                int nc = _references.GetNicheCount(activeRefs[a]);
                 if (nc < minNiche) minNiche = nc;
             }
 
-            var minRefs = new List<int>();
-            foreach (int r in refsWithCandidates)
+            minRefs.Clear();
+            for (int a = 0; a < activeRefs.Count; a++)
             {
+                int r = activeRefs[a];
                 if (_references.GetNicheCount(r) == minNiche)
                     minRefs.Add(r);
             }
 
-            // Random among min-niche refs when rng present (pymoo); else stable sort.
-            int chosenRef;
-            if (rng is not null && minRefs.Count > 1)
-                chosenRef = minRefs[rng.Next(minRefs.Count)];
-            else
-            {
-                minRefs.Sort();
-                chosenRef = minRefs[0];
-            }
+            // Random among min-niche refs when rng present (pymoo); else smallest ref index.
+            int chosenRef = rng is not null && minRefs.Count > 1
+                ? minRefs[rng.Next(minRefs.Count)]
+                : minRefs[0];
 
-            var inNiche = new List<int>();
-            foreach (int i in candidates)
+            var inNiche = buckets[chosenRef]!;
+            int pickSlot;
+            if (minNiche == 0)
             {
-                if (combined[i].AssociatedReference == chosenRef)
-                    inNiche.Add(i);
-            }
-
-            int pick;
-            if (_references.GetNicheCount(chosenRef) == 0)
-            {
-                pick = inNiche[0];
-                double best = combined[pick].PerpendicularDistance;
+                pickSlot = 0;
+                double best = combined[inNiche[0]].PerpendicularDistance;
                 for (int k = 1; k < inNiche.Count; k++)
                 {
                     double d = combined[inNiche[k]].PerpendicularDistance;
                     if (d < best)
                     {
                         best = d;
-                        pick = inNiche[k];
+                        pickSlot = k;
                     }
                 }
             }
             else if (rng is not null)
             {
-                pick = inNiche[rng.Next(inNiche.Count)];
+                pickSlot = rng.Next(inNiche.Count);
             }
             else
             {
-                pick = inNiche[0];
+                pickSlot = 0;
+                int bestIndex = inNiche[0];
                 for (int k = 1; k < inNiche.Count; k++)
                 {
-                    if (inNiche[k] < pick)
-                        pick = inNiche[k];
+                    if (inNiche[k] < bestIndex)
+                    {
+                        bestIndex = inNiche[k];
+                        pickSlot = k;
+                    }
                 }
             }
 
+            int pick = inNiche[pickSlot];
+            inNiche.RemoveAt(pickSlot);
+            if (inNiche.Count == 0)
+                activeRefs.Remove(chosenRef);
+
             selectedIdx.Add(pick);
-            candidates.Remove(pick);
             _references.IncrementNiche(chosenRef);
             remaining--;
         }
 
-        return selectedIdx.Select(i => combined[i].Clone()).ToList();
+        if (remaining > 0 && unassociated is not null)
+        {
+            int take = Math.Min(remaining, unassociated.Count);
+            for (int k = 0; k < take; k++)
+                selectedIdx.Add(unassociated[k]);
+        }
+
+        return CloneWithUpdatedNicheCounts(combined, selectedIdx);
+    }
+
+    private List<Individual> CloneWithUpdatedNicheCounts(IReadOnlyList<Individual> combined, List<int> selectedIdx)
+    {
+        var result = new List<Individual>(selectedIdx.Count);
+        for (int i = 0; i < selectedIdx.Count; i++)
+        {
+            var clone = combined[selectedIdx[i]].Clone();
+            int r = clone.AssociatedReference;
+            clone.NicheCount = r >= 0 ? _references.GetNicheCount(r) : 0;
+            result.Add(clone);
+        }
+        return result;
     }
 }

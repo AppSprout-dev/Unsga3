@@ -15,8 +15,21 @@ public sealed class RandomProvider
 
     public double NextDouble() => _rng.NextDouble();
 
-    public double NextDouble(double minInclusive, double maxExclusive) =>
-        minInclusive + (maxExclusive - minInclusive) * _rng.NextDouble();
+    public double NextDouble(double minInclusive, double maxExclusive)
+    {
+        if (!double.IsFinite(minInclusive))
+            throw new ArgumentOutOfRangeException(nameof(minInclusive), "Lower bound must be finite.");
+        if (!double.IsFinite(maxExclusive))
+            throw new ArgumentOutOfRangeException(nameof(maxExclusive), "Upper bound must be finite.");
+        if (minInclusive > maxExclusive)
+            throw new ArgumentOutOfRangeException(nameof(maxExclusive), "Upper bound must be >= lower bound.");
+
+        double span = maxExclusive - minInclusive;
+        double u = _rng.NextDouble();
+        if (double.IsInfinity(span))
+            return minInclusive * (1.0 - u) + maxExclusive * u;
+        return minInclusive + span * u;
+    }
 
     public int Next(int maxExclusive) => _rng.Next(maxExclusive);
 
@@ -25,7 +38,11 @@ public sealed class RandomProvider
     /// <summary>Uniform integer in [0, n) distinct from <paramref name="exclude"/> when n &gt; 1.</summary>
     public int NextExcept(int n, int exclude)
     {
-        if (n <= 1) return 0;
+        if (n <= 0)
+            throw new ArgumentOutOfRangeException(nameof(n), "Upper bound must be positive.");
+        if (n == 1) return 0;
+        if (exclude < 0 || exclude >= n)
+            return _rng.Next(n);
         int v = _rng.Next(n - 1);
         return v >= exclude ? v + 1 : v;
     }

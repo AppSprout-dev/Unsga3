@@ -17,7 +17,6 @@ public sealed class Unsga3Algorithm
     private readonly int _populationSize;
     private readonly ICrossover _crossover;
     private readonly IMutation _mutation;
-    private readonly double _crossoverProbability;
     private readonly double? _mutationProbability;
     private readonly int? _seed;
     private readonly TournamentMode _tournamentMode;
@@ -29,8 +28,8 @@ public sealed class Unsga3Algorithm
     /// <param name="crossover">Defaults to SBX η=30.</param>
     /// <param name="mutation">Defaults to polynomial mutation η=20.</param>
     /// <param name="crossoverProbability">
-    /// Probability of applying SBX to a parent pair. Default 1.0, matching pymoo
-    /// <c>SBX(prob=1.0)</c>. Seada &amp; Deb section 4 uses 0.9.
+    /// Probability of applying SBX to a parent pair when <paramref name="crossover"/> is null.
+    /// Default 1.0, matching pymoo <c>SBX(prob=1.0)</c>. Seada &amp; Deb section 4 uses 0.9.
     /// </param>
     /// <param name="mutationProbability">Per-variable mutation probability; default 1/nVars at run time.</param>
     /// <param name="seed">Optional RNG seed for reproducibility.</param>
@@ -66,17 +65,31 @@ public sealed class Unsga3Algorithm
         ArgumentNullException.ThrowIfNull(referenceDirections);
         if (referenceDirections.Length < 1)
             throw new ArgumentException("Need at least one reference direction.", nameof(referenceDirections));
-        if (crossoverProbability is < 0 or > 1)
-            throw new ArgumentOutOfRangeException(nameof(crossoverProbability));
+        if (referenceDirections[0] is null || referenceDirections[0].Length < 1)
+            throw new ArgumentException("Reference directions must be non-empty.", nameof(referenceDirections));
 
-        _referenceDirections = referenceDirections;
-        _populationSize = populationSize ?? referenceDirections.Length;
+        int dim = referenceDirections[0].Length;
+        var dirsCopy = new double[referenceDirections.Length][];
+        for (int i = 0; i < referenceDirections.Length; i++)
+        {
+            var row = referenceDirections[i];
+            if (row is null || row.Length != dim)
+                throw new ArgumentException("All reference directions must be non-null and have the same dimension.", nameof(referenceDirections));
+            dirsCopy[i] = (double[])row.Clone();
+        }
+
+        if (!double.IsFinite(crossoverProbability) || crossoverProbability < 0.0 || crossoverProbability > 1.0)
+            throw new ArgumentOutOfRangeException(nameof(crossoverProbability));
+        if (mutationProbability is double mp && (!double.IsFinite(mp) || mp < 0.0 || mp > 1.0))
+            throw new ArgumentOutOfRangeException(nameof(mutationProbability));
+
+        _referenceDirections = dirsCopy;
+        _populationSize = populationSize ?? dirsCopy.Length;
         if (_populationSize < 2)
             throw new ArgumentOutOfRangeException(nameof(populationSize), "Population size must be at least 2.");
 
         _crossover = crossover ?? new SimulatedBinaryCrossover(distributionIndex: 30.0, probability: crossoverProbability);
         _mutation = mutation ?? new PolynomialMutation(distributionIndex: 20.0);
-        _crossoverProbability = crossoverProbability;
         _mutationProbability = mutationProbability;
         _seed = seed;
         _tournamentMode = tournamentMode;
@@ -113,6 +126,12 @@ public sealed class Unsga3Algorithm
     public OptimizationResult Run(IProblem problem, int maxGenerations) =>
         Run(problem, TerminationCriterion.MaxGenerations(maxGenerations));
 
+    /// <summary>
+    /// Run U-NSGA-III for <paramref name="maxGenerations"/> generations, optionally warm-starting
+    /// from <paramref name="initialPopulation"/>.
+    /// </summary>
+    /// <param name="problem">Optimization problem to minimize.</param>
+    /// <param name="maxGenerations">Number of evolutionary generations to execute.</param>
     /// <param name="initialPopulation">
     /// Optional seed individuals (decision variables only; re-evaluated). Used to inject a known
     /// feasible set (e.g. a domain-adapter warm-start or grid seed). When null or empty, a uniform
@@ -278,7 +297,7 @@ public sealed class Unsga3Algorithm
 
     /// <summary>
     /// Decision-vector key for duplicate elimination. <c>G12</c> is 12 significant digits,
-    /// not 12 digits after the decimal point.
+    /// not 12 digits after the decimal point. Negative zero is normalized to <c>0</c>.
     /// </summary>
     internal static string DecisionKey(double[] x)
     {
@@ -286,7 +305,8 @@ public sealed class Unsga3Algorithm
         for (int i = 0; i < x.Length; i++)
         {
             if (i > 0) sb.Append('|');
-            sb.Append(x[i].ToString("G12", System.Globalization.CultureInfo.InvariantCulture));
+            double v = x[i] == 0.0 ? 0.0 : x[i];
+            sb.Append(v.ToString("G12", System.Globalization.CultureInfo.InvariantCulture));
         }
         return sb.ToString();
     }
@@ -308,6 +328,8 @@ public sealed class Unsga3Algorithm
             for (int i = 0; i < nTake; i++)
             {
                 var src = seed[i];
+                if (src is null)
+                    throw new ArgumentException($"Seed individual {i} is null.", nameof(seed));
                 if (src.Variables.Length != nVar)
                     throw new ArgumentException(
                         $"Seed individual {i} has {src.Variables.Length} variables; problem expects {nVar}.",
@@ -319,6 +341,10 @@ public sealed class Unsga3Algorithm
                 {
                     (double lo, double hi) = problem.Bounds[j];
                     double v = ind.Variables[j];
+                    if (!double.IsFinite(v))
+                        throw new ArgumentException(
+                            $"Seed individual {i} variable {j} must be finite.",
+                            nameof(seed));
                     if (v < lo) v = lo;
                     if (v > hi) v = hi;
                     ind.Variables[j] = v;
@@ -346,6 +372,8 @@ public sealed class Unsga3Algorithm
         foreach (var ind in population.Members)
         {
             problem.Evaluate(ind);
+            ind.RefreshConstraintViolation();
+            ind.Evaluated = true;
             n++;
         }
         return n;
@@ -357,6 +385,8 @@ public sealed class Unsga3Algorithm
         foreach (var ind in individuals)
         {
             problem.Evaluate(ind);
+            ind.RefreshConstraintViolation();
+            ind.Evaluated = true;
             n++;
         }
         return n;

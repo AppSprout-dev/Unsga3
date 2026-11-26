@@ -30,6 +30,10 @@ public sealed class Normalization
     private readonly double[] _worst;
     private readonly double[] _nadir;
     private readonly double[] _intercepts;
+    private readonly IReadOnlyList<double> _idealView;
+    private readonly IReadOnlyList<double> _nadirView;
+    private readonly IReadOnlyList<double> _interceptsView;
+    private bool _hasFeasibleHistory;
     private double[][]? _extremePoints;
 
     /// <summary>
@@ -46,6 +50,9 @@ public sealed class Normalization
         _worst = new double[_m];
         _nadir = new double[_m];
         _intercepts = new double[_m];
+        _idealView = Array.AsReadOnly(_ideal);
+        _nadirView = Array.AsReadOnly(_nadir);
+        _interceptsView = Array.AsReadOnly(_intercepts);
         for (int i = 0; i < _m; i++)
         {
             _ideal[i] = double.PositiveInfinity;
@@ -55,9 +62,9 @@ public sealed class Normalization
         }
     }
 
-    public IReadOnlyList<double> IdealPoint => _ideal;
-    public IReadOnlyList<double> NadirPoint => _nadir;
-    public IReadOnlyList<double> Intercepts => _intercepts;
+    public IReadOnlyList<double> IdealPoint => _idealView;
+    public IReadOnlyList<double> NadirPoint => _nadirView;
+    public IReadOnlyList<double> Intercepts => _interceptsView;
 
     /// <summary>
     /// Update ideal / nadir from <paramref name="population"/> and return normalized
@@ -113,6 +120,7 @@ public sealed class Normalization
 
         UpdateExtremePoints(population, ndIdx);
         UpdateNadir(population, ndIdx, poolIdx);
+        _hasFeasibleHistory = true;
 
         var normalized = new double[n][];
         for (int i = 0; i < n; i++)
@@ -179,8 +187,7 @@ public sealed class Normalization
         int n = population.Count;
         var origin = new double[_m];
         var nadir = new double[_m];
-        bool persisted = !double.IsPositiveInfinity(_ideal[0]);
-        if (persisted)
+        if (_hasFeasibleHistory)
         {
             Array.Copy(_ideal, origin, _m);
             Array.Copy(_nadir, nadir, _m);
@@ -236,22 +243,24 @@ public sealed class Normalization
             _nadir[i] = 1.0;
             _intercepts[i] = 1.0;
         }
+        _hasFeasibleHistory = false;
         _extremePoints = null;
     }
 
     private void UpdateExtremePoints(IReadOnlyList<Individual> population, int[] ndIdx)
     {
-        // Build candidate matrix = previous extremes ∪ current ND (raw objectives).
+        // Build candidate views = previous extremes ∪ current ND (raw objectives).
+        // Only the M winning vectors are cloned into _extremePoints.
         int nCand = ndIdx.Length + (_extremePoints?.Length ?? 0);
         var cand = new double[nCand][];
         int k = 0;
         if (_extremePoints is not null)
         {
             for (int i = 0; i < _extremePoints.Length; i++)
-                cand[k++] = (double[])_extremePoints[i].Clone();
+                cand[k++] = _extremePoints[i];
         }
         for (int i = 0; i < ndIdx.Length; i++)
-            cand[k++] = (double[])population[ndIdx[i]].Objectives.Clone();
+            cand[k++] = population[ndIdx[i]].Objectives;
 
         var extreme = new double[_m][];
         for (int axis = 0; axis < _m; axis++)

@@ -9,7 +9,8 @@ public sealed class PolynomialMutation : IMutation
 {
     public PolynomialMutation(double distributionIndex = 20.0)
     {
-        if (distributionIndex <= 0) throw new ArgumentOutOfRangeException(nameof(distributionIndex));
+        if (!double.IsFinite(distributionIndex) || distributionIndex <= 0.0)
+            throw new ArgumentOutOfRangeException(nameof(distributionIndex));
         DistributionIndex = distributionIndex;
     }
 
@@ -20,13 +21,15 @@ public sealed class PolynomialMutation : IMutation
         ArgumentNullException.ThrowIfNull(individual);
         ArgumentNullException.ThrowIfNull(problem);
         ArgumentNullException.ThrowIfNull(rng);
-        if (probabilityPerVariable is < 0 or > 1)
+        if (!double.IsFinite(probabilityPerVariable) || probabilityPerVariable < 0.0 || probabilityPerVariable > 1.0)
             throw new ArgumentOutOfRangeException(nameof(probabilityPerVariable));
+        if (probabilityPerVariable <= 0.0)
+            return;
 
         double eta = DistributionIndex;
         for (int i = 0; i < individual.Variables.Length; i++)
         {
-            if (rng.NextDouble() > probabilityPerVariable)
+            if (rng.NextDouble() >= probabilityPerVariable)
                 continue;
 
             (double lo, double hi) = problem.Bounds[i];
